@@ -1,69 +1,87 @@
-// MediFlow Design System - Colors
-// Based on the roadmap's brand identity guidelines
+// MediFlow Design System - Premium Brand Colors
+// Matching the MediFlow logo aesthetic: Teal/Cyan + Navy Blue
 
 export const COLORS = {
-    // Primary Colors
-    primary: '#3A7AFE',        // Trust Blue - primary actions, headers
-    primaryDark: '#2563EB',    // Darker blue for pressed states
-    primaryLight: '#60A5FA',   // Lighter blue for backgrounds
+    // Primary Brand Colors (from logo)
+    primary: '#00D4D4',        // Vibrant Teal/Cyan - main brand color
+    primaryDark: '#00A3A3',    // Darker teal for pressed states
+    primaryLight: '#4DFFFF',   // Light cyan for backgrounds
 
-    success: '#10B981',        // Success Green - confirmations, taken status
-    successLight: '#34D399',   // Light green for backgrounds
+    navy: '#1B2B44',           // Deep navy blue from logo
+    navyDark: '#0F1B2E',       // Darker navy
+    navyLight: '#2D3E5F',      // Lighter navy
 
-    // Secondary Colors
-    warning: '#F59E0B',        // Warning Orange - upcoming reminders
-    warningLight: '#FCD34D',   // Light orange for backgrounds
+    // Success & Health
+    success: '#10B981',        // Emerald green - medicine taken
+    successLight: '#6EE7B7',   // Light emerald
+    successDark: '#059669',    // Dark emerald
 
-    error: '#EF4444',          // Error Red - missed doses, errors
-    errorLight: '#F87171',     // Light red for backgrounds
+    // Warning & Alerts
+    warning: '#F59E0B',        // Amber - upcoming reminders
+    warningLight: '#FCD34D',   // Light amber
 
-    neutral: '#6B7280',        // Neutral Gray - body text
+    error: '#EF4444',          // Red - missed doses
+    errorLight: '#FCA5A5',     // Light red
 
     // Accent Colors
+    accent: '#00D4D4',         // Same as primary for consistency
     purple: '#8B5CF6',         // Premium features
     pink: '#EC4899',           // Special highlights
-    teal: '#14B8A6',           // Alternative accent
 
     // Backgrounds
+    background: '#F0FAFA',     // Very light cyan tint
+    backgroundAlt: '#E6F7F7',  // Slightly darker cyan tint
     white: '#FFFFFF',
-    lightGray: '#F9FAFB',
-    mediumGray: '#F3F4F6',
-    cardBackground: '#FFFFFF',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
 
-    // Glassmorphism
-    glassBackground: 'rgba(255, 255, 255, 0.7)',
-    glassBorder: 'rgba(255, 255, 255, 0.18)',
+    // Glassmorphism Effects
+    glass: 'rgba(0, 212, 212, 0.1)',
+    glassWhite: 'rgba(255, 255, 255, 0.9)',
+    glassBorder: 'rgba(0, 212, 212, 0.2)',
 
     // Text Colors
-    textPrimary: '#111827',
-    textSecondary: '#6B7280',
-    textDisabled: '#D1D5DB',
+    textPrimary: '#1B2B44',    // Navy for primary text
+    textSecondary: '#64748B',  // Slate gray
+    textTertiary: '#94A3B8',   // Light slate
+    textDisabled: '#CBD5E1',   // Very light gray
     textWhite: '#FFFFFF',
+    textOnPrimary: '#FFFFFF',  // White text on teal
 
     // Status Colors
-    taken: '#10B981',
-    skipped: '#F59E0B',
-    missed: '#EF4444',
-    upcoming: '#3A7AFE',
+    taken: '#10B981',          // Green checkmark
+    pending: '#F59E0B',        // Amber warning
+    missed: '#EF4444',         // Red alert
+    upcoming: '#00D4D4',       // Teal (brand color)
+    skipped: '#94A3B8',        // Gray
 
-    // Gradients
-    gradientPrimary: ['#3A7AFE', '#60A5FA'],
-    gradientSuccess: ['#10B981', '#34D399'],
-    gradientWarning: ['#F59E0B', '#FCD34D'],
-    gradientPremium: ['#8B5CF6', '#EC4899'],
-    gradientHero: ['#3A7AFE', '#14B8A6'],
+    // Gradients - Premium teal-based
+    gradientPrimary: ['#00D4D4', '#00A3A3'],           // Teal gradient
+    gradientHero: ['#00D4D4', '#1B2B44'],              // Teal to Navy
+    gradientSuccess: ['#10B981', '#34D399'],           // Emerald gradient
+    gradientWarning: ['#F59E0B', '#FBBF24'],           // Amber gradient
+    gradientPremium: ['#8B5CF6', '#EC4899'],           // Purple to Pink
+    gradientCard: ['#FFFFFF', '#F0FAFA'],              // White to light teal
+    gradientOverlay: ['rgba(27, 43, 68, 0.8)', 'rgba(0, 212, 212, 0.3)'], // Navy to teal overlay
 
     // Borders
-    border: '#E5E7EB',
-    borderLight: '#F3F4F6',
-    borderDark: '#D1D5DB',
+    border: '#E2E8F0',         // Light slate
+    borderLight: '#F1F5F9',    // Very light slate
+    borderDark: '#CBD5E1',     // Medium slate
+    borderPrimary: '#00D4D4',  // Teal border for focus
 
-    // Shadows (for elevation)
+    // Shadows (for depth)
     shadow: {
-        small: 'rgba(0, 0, 0, 0.05)',
-        medium: 'rgba(0, 0, 0, 0.1)',
-        large: 'rgba(0, 0, 0, 0.15)',
+        small: 'rgba(27, 43, 68, 0.08)',
+        medium: 'rgba(27, 43, 68, 0.12)',
+        large: 'rgba(27, 43, 68, 0.16)',
+        teal: 'rgba(0, 212, 212, 0.25)',  // Teal glow
     },
+
+    // Special Effects
+    shimmer: 'rgba(255, 255, 255, 0.5)',
+    overlay: 'rgba(27, 43, 68, 0.5)',
+    backdrop: 'rgba(0, 0, 0, 0.3)',
 };
 
 export default COLORS;

@@ -9,8 +9,10 @@ import {
     ScrollView,
     TouchableOpacity,
     RefreshControl,
+    Platform,
 } from 'react-native';
-
+import { LinearGradient } from 'expo-linear-gradient';
+import { Check, X, SkipForward, Clock } from 'lucide-react-native';
 
 // Components
 import Card from '../components/common/Card';
@@ -61,13 +63,13 @@ const HistoryScreen = () => {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'taken':
-                return '✓';
+                return <Check size={16} color={COLORS.taken} />;
             case 'skipped':
-                return '⏭️';
+                return <SkipForward size={16} color={COLORS.skipped} />;
             case 'missed':
-                return '❌';
+                return <X size={16} color={COLORS.missed} />;
             default:
-                return '•';
+                return <Clock size={16} color={COLORS.textSecondary} />;
         }
     };
 
@@ -123,10 +125,15 @@ const HistoryScreen = () => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
+            {/* Gradient Header */}
+            <LinearGradient
+                colors={COLORS.gradientHero}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+            >
                 <Text style={styles.headerTitle}>History</Text>
-            </View>
+            </LinearGradient>
 
             {/* Tabs */}
             <View style={styles.tabs}>
@@ -281,15 +288,21 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.lightGray,
     },
     header: {
-        backgroundColor: COLORS.white,
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
+        paddingTop: Platform.OS === 'android' ? 40 : 50,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        elevation: 4,
+        shadowColor: COLORS.shadow.medium,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
     },
     headerTitle: {
-        fontSize: TYPOGRAPHY.fontSize.h2,
+        fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
+        color: COLORS.white,
     },
     tabs: {
         flexDirection: 'row',

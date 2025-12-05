@@ -225,19 +225,8 @@ const useReminderStore = create((set, get) => ({
      */
     snoozeReminder: async (reminder, medicine, snoozeDuration = 15) => {
         try {
-            // Send notification after snooze duration
-            setTimeout(async () => {
-                await notificationService.sendImmediateNotification(
-                    '💊 Reminder (Snoozed)',
-                    `Time to take your ${medicine.verified_name}`,
-                    {
-                        reminder_id: reminder.reminder_id,
-                        med_id: reminder.med_id,
-                        type: 'medicine_reminder_snoozed',
-                    }
-                );
-            }, snoozeDuration * 60 * 1000);
-
+            // Schedule snoozed notification
+            await notificationService.scheduleSnooze(reminder, medicine, snoozeDuration);
             console.log(`✅ Snoozed reminder for ${snoozeDuration} minutes`);
         } catch (error) {
             console.error('Error snoozing reminder:', error);

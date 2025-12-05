@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Services
 import databaseService from './src/services/databaseService';
-// import notificationService from './src/services/notificationService'; // Temporarily disabled
+import notificationService from './src/services/notificationService';
 
 // Stores
 import useUserStore from './src/store/useUserStore';
@@ -35,10 +35,10 @@ export default function App() {
       await databaseService.init();
       console.log('✅ Database initialized');
 
-      // Initialize notifications (temporarily disabled)
-      // console.log('🔔 Initializing notifications...');
-      // await notificationService.init();
-      // console.log('✅ Notifications initialized');
+      // Initialize notifications
+      console.log('🔔 Initializing notifications...');
+      await notificationService.init();
+      console.log('✅ Notifications initialized');
 
       // Initialize or load user
       console.log('👤 Loading user...');

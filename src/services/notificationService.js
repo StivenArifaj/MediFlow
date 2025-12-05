@@ -67,30 +67,42 @@ class NotificationService {
         try {
             // Parse time (HH:MM format)
             const [hours, minutes] = reminder.time.split(':').map(Number);
+            const notificationIds = [];
 
             // Get days array (0 = Sunday, 6 = Saturday)
-            const days = JSON.parse(reminder.days);
+            const days = typeof reminder.days === 'string' ? JSON.parse(reminder.days) : reminder.days;
 
-            // Create trigger based on frequency type
+            if (reminder.frequency_type === 'specific_days') {
+                // Schedule a separate notification for each day
+                for (const day of days) {
+                    // Expo uses 1=Sunday, 7=Saturday. JS uses 0=Sunday, 6=Saturday.
+                    // Map: 0->1, 1->2, ..., 6->7
+                    const weekday = day + 1;
+
+                    const trigger = {
+                        hour: hours,
+                        minute: minutes,
+                        weekday: weekday,
+                        repeats: true,
+                    };
+
+                    const id = await this._scheduleSingleNotification(reminder, medicine, trigger);
+                    notificationIds.push(id);
+                }
+                // Return the first ID or a joined string (we might need to store all IDs)
+                // For simplicity, we'll return the first one, but in reality we should track all.
+                // However, our cancel logic cancels by reminder_id in data, so it handles multiple.
+                return notificationIds[0];
+            }
+
             let trigger;
-
             if (reminder.frequency_type === 'daily') {
-                // Daily reminder at specific time
                 trigger = {
                     hour: hours,
                     minute: minutes,
-                    repeats: true,
-                };
-            } else if (reminder.frequency_type === 'specific_days') {
-                // Specific days of week
-                trigger = {
-                    hour: hours,
-                    minute: minutes,
-                    weekday: days, // Array of days
                     repeats: true,
                 };
             } else if (reminder.frequency_type === 'interval') {
-                // Every X days
                 const intervalSeconds = (reminder.interval_days || 1) * 24 * 60 * 60;
                 trigger = {
                     seconds: intervalSeconds,
@@ -98,30 +110,37 @@ class NotificationService {
                 };
             }
 
-            // Schedule notification
-            const notificationId = await Notifications.scheduleNotificationAsync({
-                content: {
-                    title: '💊 Time for your medicine',
-                    body: `Take your ${medicine.verified_name || medicine.custom_name}`,
-                    data: {
-                        reminder_id: reminder.reminder_id,
-                        med_id: reminder.med_id,
-                        type: 'medicine_reminder',
-                    },
-                    sound: reminder.sound || 'default',
-                    priority: Notifications.AndroidNotificationPriority.MAX,
-                    categoryIdentifier: 'medicine_reminder',
-                },
-                trigger,
-            });
-
-            console.log(`✅ Scheduled notification ${notificationId} for ${medicine.verified_name}`);
-            return notificationId;
+            const id = await this._scheduleSingleNotification(reminder, medicine, trigger);
+            return id;
 
         } catch (error) {
             console.error('❌ Error scheduling notification:', error);
             throw error;
         }
+    }
+
+    /**
+     * Helper to schedule a single notification
+     */
+    async _scheduleSingleNotification(reminder, medicine, trigger) {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: '💊 Time for your medicine',
+                body: `Take your ${medicine.verified_name || medicine.custom_name}`,
+                data: {
+                    reminder_id: reminder.reminder_id,
+                    med_id: reminder.med_id,
+                    type: 'medicine_reminder',
+                },
+                sound: reminder.sound || 'default',
+                priority: Notifications.AndroidNotificationPriority.MAX,
+                categoryIdentifier: 'medicine_reminder',
+            },
+            trigger,
+        });
+
+        console.log(`✅ Scheduled notification ${notificationId} for ${medicine.verified_name}`);
+        return notificationId;
     }
 
     /**
@@ -212,6 +231,38 @@ class NotificationService {
         } catch (error) {
             console.error('❌ Error getting scheduled notifications:', error);
             return [];
+        }
+    }
+
+    /**
+     * Schedule a snoozed notification
+     */
+    async scheduleSnooze(reminder, medicine, durationMinutes = 15) {
+        try {
+            const trigger = {
+                seconds: durationMinutes * 60,
+                repeats: false,
+            };
+
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: '💊 Reminder (Snoozed)',
+                    body: `Time to take your ${medicine.verified_name || medicine.custom_name}`,
+                    data: {
+                        reminder_id: reminder.reminder_id,
+                        med_id: reminder.med_id,
+                        type: 'medicine_reminder_snoozed',
+                    },
+                    sound: reminder.sound || 'default',
+                    priority: Notifications.AndroidNotificationPriority.MAX,
+                },
+                trigger,
+            });
+
+            console.log(`✅ Scheduled snooze for ${durationMinutes} minutes`);
+        } catch (error) {
+            console.error('❌ Error scheduling snooze:', error);
+            throw error;
         }
     }
 

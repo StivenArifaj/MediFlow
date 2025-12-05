@@ -141,6 +141,20 @@ class DatabaseService {
       );
     `);
 
+        // Health Measurements Table
+        await this.db.execAsync(`
+            CREATE TABLE IF NOT EXISTS health_measurements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                unit TEXT NOT NULL,
+                notes TEXT,
+                date TEXT NOT NULL,
+                created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+            );
+        `);
+
         // Create indexes for better performance
         await this.db.execAsync(`
       CREATE INDEX IF NOT EXISTS idx_medicines_user ON medicines(user_id);
@@ -156,9 +170,17 @@ class DatabaseService {
         console.log('✅ All tables created successfully');
     }
 
+    // Helper to ensure DB is ready
+    _checkDb() {
+        if (!this.db) {
+            throw new Error('Database not initialized. Call init() first.');
+        }
+    }
+
     // ==================== MEDICINE OPERATIONS ====================
 
     async saveMedicine(medicine) {
+        this._checkDb();
         const medId = medicine.med_id || `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         await this.db.runAsync(
@@ -192,6 +214,7 @@ class DatabaseService {
     }
 
     async getMedicines(userId) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             'SELECT * FROM medicines WHERE user_id = ? AND is_active = 1 ORDER BY created_at DESC',
             [userId]
@@ -204,6 +227,7 @@ class DatabaseService {
     }
 
     async getMedicineById(medId) {
+        this._checkDb();
         const result = await this.db.getFirstAsync(
             'SELECT * FROM medicines WHERE med_id = ?',
             [medId]
@@ -215,6 +239,7 @@ class DatabaseService {
     }
 
     async updateMedicine(medId, updates) {
+        this._checkDb();
         const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
         const values = [...Object.values(updates), Date.now(), medId];
 
@@ -225,6 +250,7 @@ class DatabaseService {
     }
 
     async deleteMedicine(medId) {
+        this._checkDb();
         await this.db.runAsync(
             'UPDATE medicines SET is_active = 0 WHERE med_id = ?',
             [medId]
@@ -232,6 +258,7 @@ class DatabaseService {
     }
 
     async searchMedicines(userId, searchTerm) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             `SELECT * FROM medicines 
        WHERE user_id = ? AND is_active = 1 
@@ -245,6 +272,7 @@ class DatabaseService {
     // ==================== REMINDER OPERATIONS ====================
 
     async saveReminder(reminder) {
+        this._checkDb();
         const reminderId = reminder.reminder_id || `rem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         await this.db.runAsync(
@@ -273,6 +301,7 @@ class DatabaseService {
     }
 
     async getReminders(userId) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             'SELECT * FROM reminders WHERE user_id = ? AND is_active = 1 ORDER BY time ASC',
             [userId]
@@ -287,6 +316,7 @@ class DatabaseService {
     }
 
     async getRemindersByMedicine(medId) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             'SELECT * FROM reminders WHERE med_id = ? AND is_active = 1 ORDER BY time ASC',
             [medId]
@@ -301,6 +331,7 @@ class DatabaseService {
     }
 
     async updateReminder(reminderId, updates) {
+        this._checkDb();
         const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
         const values = [...Object.values(updates), Date.now(), reminderId];
 
@@ -311,6 +342,7 @@ class DatabaseService {
     }
 
     async deleteReminder(reminderId) {
+        this._checkDb();
         await this.db.runAsync(
             'UPDATE reminders SET is_active = 0 WHERE reminder_id = ?',
             [reminderId]
@@ -320,6 +352,7 @@ class DatabaseService {
     // ==================== HISTORY OPERATIONS ====================
 
     async logHistory(entry) {
+        this._checkDb();
         const entryId = entry.entry_id || `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         await this.db.runAsync(
@@ -344,6 +377,7 @@ class DatabaseService {
     }
 
     async getHistory(userId, limit = 50) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             `SELECT h.*, m.verified_name as medicine_name 
        FROM history h
@@ -357,6 +391,7 @@ class DatabaseService {
     }
 
     async getHistoryByMedicine(medId, limit = 30) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             'SELECT * FROM history WHERE med_id = ? ORDER BY scheduled_time DESC LIMIT ?',
             [medId, limit]
@@ -365,6 +400,7 @@ class DatabaseService {
     }
 
     async getHistoryByDateRange(userId, startDate, endDate) {
+        this._checkDb();
         const result = await this.db.getAllAsync(
             `SELECT h.*, m.verified_name as medicine_name 
        FROM history h
@@ -374,6 +410,36 @@ class DatabaseService {
             [userId, startDate, endDate]
         );
         return result;
+    }
+
+    // ==================== HEALTH MEASUREMENT OPERATIONS ====================
+
+    async addHealthMeasurement(measurement) {
+        this._checkDb();
+        return await this.db.withTransactionAsync(async () => {
+            const result = await this.db.runAsync(
+                `INSERT INTO health_measurements (user_id, type, value, unit, notes, date) VALUES (?, ?, ?, ?, ?, ?)`,
+                [measurement.user_id, measurement.type, measurement.value, measurement.unit, measurement.notes, measurement.date]
+            );
+            return result.lastInsertRowId;
+        });
+    }
+
+    async getHealthMeasurements(userId) {
+        this._checkDb();
+        const result = await this.db.getAllAsync(
+            `SELECT * FROM health_measurements WHERE user_id = ? ORDER BY date DESC`,
+            [userId]
+        );
+        return result;
+    }
+
+    async deleteHealthMeasurement(id) {
+        this._checkDb();
+        await this.db.runAsync(
+            `DELETE FROM health_measurements WHERE id = ?`,
+            [id]
+        );
     }
 
     // ==================== STATISTICS ====================

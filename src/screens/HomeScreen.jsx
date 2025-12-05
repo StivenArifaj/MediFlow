@@ -11,6 +11,9 @@ import {
     RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Pill, Camera, ChevronRight, Lightbulb, Calendar, Check, Clock } from 'lucide-react-native';
 
 // Components
 import Card from '../components/common/Card';
@@ -21,6 +24,7 @@ import EmptyState from '../components/common/EmptyState';
 import useMedicineStore from '../store/useMedicineStore';
 import useReminderStore from '../store/useReminderStore';
 import useUserStore from '../store/useUserStore';
+import notificationService from '../services/notificationService';
 
 // Constants
 import COLORS from '../constants/colors';
@@ -37,6 +41,16 @@ const HomeScreen = ({ navigation }) => {
         if (user?.user_id) {
             loadData();
         }
+
+        // Listen for foreground notifications to refresh data
+        const subscription = notificationService.addNotificationReceivedListener(() => {
+            console.log('🔔 Notification received in foreground, refreshing data...');
+            loadData();
+        });
+
+        return () => {
+            notificationService.removeNotificationListener(subscription);
+        };
     }, [user]);
 
     const loadData = async () => {
@@ -67,6 +81,8 @@ const HomeScreen = ({ navigation }) => {
         return 'Good Evening';
     };
 
+    const insets = useSafeAreaInsets();
+
     return (
         <View style={styles.container}>
             <ScrollView
@@ -81,7 +97,7 @@ const HomeScreen = ({ navigation }) => {
                     colors={COLORS.gradientHero}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.heroHeader}
+                    style={[styles.heroHeader, { paddingTop: insets.top + 20 }]}
                 >
                     <View style={styles.headerContent}>
                         <View>
@@ -118,7 +134,10 @@ const HomeScreen = ({ navigation }) => {
                 {/* Today's Reminders Section */}
                 {todaysReminders.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>📅 Today's Schedule</Text>
+                        <View style={styles.sectionHeader}>
+                            <Calendar size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+                        </View>
                         {todaysReminders.map((reminder) => (
                             <Card
                                 key={reminder.reminder_id}
@@ -134,11 +153,14 @@ const HomeScreen = ({ navigation }) => {
                                             <Text style={styles.reminderMedicine}>
                                                 Medicine #{reminder.med_id.slice(0, 8)}
                                             </Text>
-                                            <Text style={styles.reminderStatus}>⏳ Upcoming</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Clock size={12} color={COLORS.warning} style={{ marginRight: 4 }} />
+                                                <Text style={styles.reminderStatus}>Upcoming</Text>
+                                            </View>
                                         </View>
                                     </View>
                                     <TouchableOpacity style={styles.reminderAction}>
-                                        <Text style={styles.actionIcon}>✓</Text>
+                                        <Check size={20} color={COLORS.success} />
                                     </TouchableOpacity>
                                 </View>
                             </Card>
@@ -149,7 +171,10 @@ const HomeScreen = ({ navigation }) => {
                 {/* My Medicines Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>💊 My Medicines</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Pill size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                            <Text style={styles.sectionTitle}>My Medicines</Text>
+                        </View>
                         {medicines.length > 0 && (
                             <TouchableOpacity>
                                 <Text style={styles.seeAll}>See All →</Text>
@@ -159,7 +184,7 @@ const HomeScreen = ({ navigation }) => {
 
                     {medicines.length === 0 ? (
                         <EmptyState
-                            icon="💊"
+                            icon={<Pill size={48} color={COLORS.textDisabled} />}
                             title="No medicines yet"
                             description="Start by scanning or adding your first medicine"
                             actionText="Add Medicine"
@@ -175,7 +200,7 @@ const HomeScreen = ({ navigation }) => {
                                 >
                                     <View style={styles.medicineContent}>
                                         <View style={styles.medicineIcon}>
-                                            <Text style={styles.medicineEmoji}>💊</Text>
+                                            <Pill size={28} color={COLORS.primary} />
                                         </View>
                                         <View style={styles.medicineInfo}>
                                             <Text style={styles.medicineName}>
@@ -195,7 +220,7 @@ const HomeScreen = ({ navigation }) => {
                                             </View>
                                         </View>
                                         <TouchableOpacity style={styles.medicineAction}>
-                                            <Text style={styles.actionIcon}>›</Text>
+                                            <ChevronRight size={20} color={COLORS.textSecondary} />
                                         </TouchableOpacity>
                                     </View>
                                 </Card>
@@ -214,8 +239,10 @@ const HomeScreen = ({ navigation }) => {
 
                 {/* Health Tip Card */}
                 <Card variant="gradient" gradientColors={COLORS.gradientSuccess} style={styles.tipCard}>
-                    <Text style={styles.tipIcon}>💡</Text>
-                    <Text style={styles.tipTitle}>Health Tip</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                        <Lightbulb size={24} color={COLORS.white} style={{ marginRight: 8 }} />
+                        <Text style={styles.tipTitle}>Health Tip</Text>
+                    </View>
                     <Text style={styles.tipText}>
                         Take your medicines at the same time each day to build a consistent routine
                     </Text>
@@ -227,7 +254,7 @@ const HomeScreen = ({ navigation }) => {
 
             {/* Floating Action Button */}
             <FloatingActionButton
-                icon="📸"
+                icon={<Camera size={24} color={COLORS.white} />}
                 onPress={() => navigation.navigate('ScanMedicine')}
             />
         </View>
@@ -237,7 +264,7 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.lightGray,
+        backgroundColor: COLORS.background,
     },
     scrollView: {
         flex: 1,
@@ -417,7 +444,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: COLORS.lightGray,
+        backgroundColor: COLORS.backgroundAlt,
         justifyContent: 'center',
         alignItems: 'center',
     },

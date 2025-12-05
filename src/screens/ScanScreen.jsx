@@ -13,6 +13,8 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Camera, Zap, ZapOff, Type, X, Image as ImageIcon } from 'lucide-react-native';
+
 // Components
 import Button from '../components/common/Button';
 
@@ -41,7 +43,7 @@ const ScanScreen = ({ navigation }) => {
                     colors={COLORS.gradientPrimary}
                     style={styles.permissionContainer}
                 >
-                    <Text style={styles.permissionIcon}>📸</Text>
+                    <Camera size={80} color={COLORS.white} style={{ marginBottom: 24 }} />
                     <Text style={styles.permissionTitle}>Camera Access Required</Text>
                     <Text style={styles.permissionText}>
                         MediFlow needs camera access to scan your medicine boxes
@@ -71,9 +73,6 @@ const ScanScreen = ({ navigation }) => {
                 base64: false,
             });
 
-            // Show processing alert
-            Alert.alert('Processing...', 'Extracting medicine information from photo');
-
             // Import OCR service
             const ocrService = require('../services/ocrService').default;
             const apiService = require('../services/apiService').default;
@@ -96,18 +95,32 @@ const ScanScreen = ({ navigation }) => {
             // Search OpenFDA for medicine details
             let medicineData = ocrResult.data;
 
+            console.log('📋 OCR Extracted Data:', medicineData);
+
             if (medicineData.verified_name) {
                 const apiResult = await apiService.searchMedicine(medicineData.verified_name);
 
-                if (apiResult.success && apiResult.data) {
-                    // Merge OCR data with API data
+                console.log('🔍 OpenFDA API Result:', apiResult);
+
+                if (apiResult.success && apiResult.medicines && apiResult.medicines.length > 0) {
+                    // Get first medicine from results
+                    const fdaData = apiResult.medicines[0];
+
+                    // Merge OCR data with API data (OCR takes priority for what it found)
                     medicineData = {
-                        ...medicineData,
-                        ...apiResult.data,
+                        verified_name: medicineData.verified_name || fdaData.brandName,
+                        brand_name: medicineData.brand_name || fdaData.brandName,
+                        generic_name: medicineData.generic_name || fdaData.genericName,
+                        manufacturer: medicineData.manufacturer || fdaData.manufacturer,
+                        strength: medicineData.strength,
+                        form: medicineData.form,
+                        category: medicineData.category || fdaData.purpose,
                         api_source: 'openfda',
                     };
                 }
             }
+
+            console.log('✅ Final Medicine Data:', medicineData);
 
             // Navigate to AddMedicine with pre-filled data
             navigation.navigate('AddMedicine', {
@@ -135,7 +148,10 @@ const ScanScreen = ({ navigation }) => {
                 <View style={styles.overlay}>
                     <View style={styles.topOverlay}>
                         <Text style={styles.instructionText}>
-                            Position medicine box in frame
+                            Scan Medicine Box
+                        </Text>
+                        <Text style={styles.subInstructionText}>
+                            Align the medicine name within the frame
                         </Text>
                     </View>
 
@@ -145,48 +161,48 @@ const ScanScreen = ({ navigation }) => {
                         <View style={[styles.corner, styles.topRight]} />
                         <View style={[styles.corner, styles.bottomLeft]} />
                         <View style={[styles.corner, styles.bottomRight]} />
+
+                        {/* Animated Scan Line (Visual only for now) */}
+                        <View style={styles.scanLine} />
                     </View>
 
                     <View style={styles.bottomOverlay}>
-                        <Text style={styles.tipText}>
-                            💡 Tip: Ensure good lighting and focus on the medicine name
-                        </Text>
+                        {/* Controls */}
+                        <View style={styles.controls}>
+                            {/* Flash Toggle */}
+                            <TouchableOpacity
+                                style={styles.controlButton}
+                                onPress={() => setFlash(!flash)}
+                            >
+                                {flash ? (
+                                    <ZapOff size={28} color={COLORS.white} />
+                                ) : (
+                                    <Zap size={28} color={COLORS.white} />
+                                )}
+                                <Text style={styles.controlText}>Flash</Text>
+                            </TouchableOpacity>
+
+                            {/* Capture Button */}
+                            <TouchableOpacity
+                                style={styles.captureButton}
+                                onPress={handleCapture}
+                                disabled={capturing}
+                            >
+                                <View style={styles.captureOuterRing}>
+                                    <View style={styles.captureInner} />
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Manual Entry */}
+                            <TouchableOpacity
+                                style={styles.controlButton}
+                                onPress={() => navigation.navigate('AddMedicine')}
+                            >
+                                <Type size={28} color={COLORS.white} />
+                                <Text style={styles.controlText}>Manual</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-
-                {/* Controls */}
-                <View style={styles.controls}>
-                    {/* Flash Toggle */}
-                    <TouchableOpacity
-                        style={styles.controlButton}
-                        onPress={() => setFlash(!flash)}
-                    >
-                        <Text style={styles.controlIcon}>{flash ? '⚡' : '🔦'}</Text>
-                        <Text style={styles.controlText}>Flash</Text>
-                    </TouchableOpacity>
-
-                    {/* Capture Button */}
-                    <TouchableOpacity
-                        style={styles.captureButton}
-                        onPress={handleCapture}
-                        disabled={capturing}
-                    >
-                        <LinearGradient
-                            colors={COLORS.gradientPrimary}
-                            style={styles.captureGradient}
-                        >
-                            <View style={styles.captureInner} />
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    {/* Manual Entry */}
-                    <TouchableOpacity
-                        style={styles.controlButton}
-                        onPress={() => navigation.navigate('AddMedicine')}
-                    >
-                        <Text style={styles.controlIcon}>✏️</Text>
-                        <Text style={styles.controlText}>Manual</Text>
-                    </TouchableOpacity>
                 </View>
             </CameraView>
         </View>
@@ -253,11 +269,25 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
     },
+    subInstructionText: {
+        color: COLORS.white,
+        fontSize: TYPOGRAPHY.fontSize.small,
+        textAlign: 'center',
+        opacity: 0.8,
+        marginTop: 8,
+    },
     scanFrame: {
-        width: 300,
-        height: 200,
+        width: 280,
+        height: 280,
         alignSelf: 'center',
         position: 'relative',
+        justifyContent: 'center',
+    },
+    scanLine: {
+        width: '100%',
+        height: 2,
+        backgroundColor: COLORS.primary,
+        opacity: 0.6,
     },
     corner: {
         position: 'absolute',
@@ -265,6 +295,7 @@ const styles = StyleSheet.create({
         height: 40,
         borderColor: COLORS.primary,
         borderWidth: 4,
+        borderRadius: 4,
     },
     topLeft: {
         top: 0,
@@ -293,55 +324,50 @@ const styles = StyleSheet.create({
     bottomOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 32,
-    },
-    tipText: {
-        color: COLORS.white,
-        fontSize: TYPOGRAPHY.fontSize.small,
-        textAlign: 'center',
-        lineHeight: 20,
+        justifyContent: 'flex-end',
+        paddingBottom: 40,
     },
     controls: {
-        position: 'absolute',
-        bottom: 40,
-        left: 0,
-        right: 0,
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
         paddingHorizontal: 32,
+        width: '100%',
     },
     controlButton: {
         alignItems: 'center',
-    },
-    controlIcon: {
-        fontSize: 32,
-        marginBottom: 8,
+        justifyContent: 'center',
+        width: 60,
     },
     controlText: {
         color: COLORS.white,
-        fontSize: TYPOGRAPHY.fontSize.small,
-        fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
     },
     captureButton: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        padding: 4,
+        backgroundColor: 'transparent',
+        borderWidth: 4,
+        borderColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    captureGradient: {
-        flex: 1,
-        borderRadius: 40,
+    captureOuterRing: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: 'transparent',
         justifyContent: 'center',
         alignItems: 'center',
     },
     captureInner: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: COLORS.white,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: COLORS.primary,
     },
 });
 

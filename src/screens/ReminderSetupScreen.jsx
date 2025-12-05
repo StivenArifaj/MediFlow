@@ -11,13 +11,16 @@ import {
     Alert,
 } from 'react-native';
 
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Clock, Calendar, List, Check } from 'lucide-react-native';
+
 // Components
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 
 // Stores
 import useReminderStore from '../store/useReminderStore';
-import useMedicineStore from '../store/useMedicineStore'; // Fixed import (was useUserStore)
+import useUserStore from '../store/useUserStore';
 
 // Constants
 import COLORS from '../constants/colors';
@@ -25,23 +28,31 @@ import TYPOGRAPHY from '../constants/typography';
 import CONFIG from '../constants/config';
 
 const ReminderSetupScreen = ({ route, navigation }) => {
-    const { medId } = route.params || {}; // Handle missing params safely
+    const { medId } = route.params || {};
     const { addReminder } = useReminderStore();
-    const { user } = useMedicineStore(); // This might be wrong, usually user is from useUserStore
-
-    // Correcting store usage based on imports in other files
-    // useMedicineStore usually gives medicines, useUserStore gives user.
-    // Let's check imports. The original file imported useMedicineStore from '../store/useUserStore' which looks like a copy-paste error.
-    // I will fix this to import useUserStore properly.
-
-    // Actually, looking at the previous file content:
-    // import useMedicineStore from '../store/useUserStore';
-    // This is definitely wrong. I will fix it.
+    const { user } = useUserStore();
 
     const [selectedTimes, setSelectedTimes] = useState([]);
     const [frequency, setFrequency] = useState('daily');
     const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4, 5, 6]); // All days
     const [loading, setLoading] = useState(false);
+
+    // Custom Time Picker State
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [customTime, setCustomTime] = useState(new Date());
+
+    const onTimeSelected = (event, selectedDate) => {
+        setShowTimePicker(false);
+        if (selectedDate) {
+            setCustomTime(selectedDate);
+            const formattedTime = selectedDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+            });
+            togglePresetTime(formattedTime);
+        }
+    };
 
     const togglePresetTime = (time) => {
         if (selectedTimes.includes(time)) {
@@ -73,10 +84,7 @@ const ReminderSetupScreen = ({ route, navigation }) => {
         setLoading(true);
 
         try {
-            // Create a reminder for each selected time
-            // Note: user.user_id might be undefined if store usage is wrong.
-            // Assuming useUserStore is fixed below.
-            const userId = 'local_user_1'; // Fallback or get from store
+            const userId = user?.user_id || 'local_user_1'; // FIXED: Added null safety
 
             for (const time of selectedTimes) {
                 await addReminder(
@@ -90,7 +98,7 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                         sound: 'default',
                         snooze_enabled: true,
                     },
-                    { verified_name: 'Medicine' } // TODO: Get actual medicine name
+                    { verified_name: 'Medicine' }
                 );
             }
 
@@ -117,9 +125,11 @@ const ReminderSetupScreen = ({ route, navigation }) => {
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollView}>
-                {/* Step 1: Time Selection */}
                 <Card style={styles.section}>
-                    <Text style={styles.sectionTitle}>⏰ When should you take this medicine?</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                        <Clock size={24} color={COLORS.primary} style={{ marginRight: 8 }} />
+                        <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>When to take?</Text>
+                    </View>
 
                     {CONFIG.TIME_PRESETS.map((preset) => (
                         <TouchableOpacity
@@ -145,13 +155,31 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                                     {preset.time}
                                 </Text>
                             </View>
-                            {selectedTimes.includes(preset.time) && (
-                                <Text style={styles.checkmark}>✓</Text>
-                            )}
+                            {selectedTimes.includes(preset.time) ? (
+                                <Check size={24} color={COLORS.primary} />
+                            ) : null}
                         </TouchableOpacity>
                     ))}
 
-                    {selectedTimes.length > 0 && (
+                    {/* Custom Time Picker */}
+                    <TouchableOpacity
+                        style={styles.customTimeButton}
+                        onPress={() => setShowTimePicker(true)}
+                    >
+                        <Text style={styles.customTimeText}>+ Add Custom Time</Text>
+                    </TouchableOpacity>
+
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={customTime}
+                            mode="time"
+                            is24Hour={false}
+                            display="default"
+                            onChange={onTimeSelected}
+                        />
+                    )}
+
+                    {selectedTimes.length > 0 ? (
                         <View style={styles.selectedTimesContainer}>
                             <Text style={styles.selectedTimesLabel}>
                                 Selected Times ({selectedTimes.length}):
@@ -167,10 +195,9 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                                 ))}
                             </View>
                         </View>
-                    )}
+                    ) : null}
                 </Card>
 
-                {/* Step 2: Frequency */}
                 <Card style={styles.section}>
                     <Text style={styles.sectionTitle}>📅 How often?</Text>
 
@@ -200,7 +227,7 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                         <Text style={styles.frequencyText}>Specific days</Text>
                     </TouchableOpacity>
 
-                    {frequency === 'specific_days' && (
+                    {frequency === 'specific_days' ? (
                         <View style={styles.daysContainer}>
                             {days.map((day, index) => (
                                 <TouchableOpacity
@@ -222,7 +249,7 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                                 </TouchableOpacity>
                             ))}
                         </View>
-                    )}
+                    ) : null}
 
                     <TouchableOpacity
                         style={[
@@ -238,7 +265,6 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                     </TouchableOpacity>
                 </Card>
 
-                {/* Summary */}
                 <Card variant="outlined" style={styles.summaryCard}>
                     <Text style={styles.summaryTitle}>📋 Summary</Text>
                     <Text style={styles.summaryText}>
@@ -248,14 +274,13 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                     <Text style={styles.summaryText}>
                         Frequency: {frequency === 'daily' ? 'Every day' : frequency === 'specific_days' ? 'Selected days' : 'As needed'}
                     </Text>
-                    {frequency === 'specific_days' && (
+                    {frequency === 'specific_days' ? (
                         <Text style={styles.summaryText}>
                             Days: {selectedDays.map(d => days[d]).join(', ')}
                         </Text>
-                    )}
+                    ) : null}
                 </Card>
 
-                {/* Submit Button */}
                 <View style={styles.actions}>
                     <Button
                         title="Create Reminder(s)"
@@ -326,6 +351,21 @@ const styles = StyleSheet.create({
     },
     checkmark: {
         fontSize: 24,
+        color: COLORS.primary,
+    },
+    customTimeButton: {
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        marginBottom: 16,
+        backgroundColor: COLORS.primary + '05',
+    },
+    customTimeText: {
+        fontSize: TYPOGRAPHY.fontSize.body,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
         color: COLORS.primary,
     },
     selectedTimesContainer: {
