@@ -4,7 +4,7 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import COLORS from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const Card = ({
     children,
@@ -13,6 +13,7 @@ const Card = ({
     variant = 'default', // default, elevated, outlined, gradient
     gradientColors,
 }) => {
+    const { colors } = useTheme();
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const handlePressIn = () => {
@@ -36,20 +37,42 @@ const Card = ({
     };
 
     const getCardStyle = () => {
-        const styles = [cardStyles.base];
+        const styles = [{
+            backgroundColor: colors.cardBackground,
+            borderRadius: 16,
+            padding: 16,
+            marginVertical: 8,
+        }];
 
         switch (variant) {
             case 'elevated':
-                styles.push(cardStyles.elevated);
+                styles.push({
+                    shadowColor: colors.shadow.large,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 1,
+                    shadowRadius: 12,
+                    elevation: 6,
+                });
                 break;
             case 'outlined':
-                styles.push(cardStyles.outlined);
+                styles.push({
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    shadowOpacity: 0,
+                    elevation: 0,
+                });
                 break;
             case 'gradient':
-                styles.push(cardStyles.gradient);
+                styles.push({ padding: 0, overflow: 'hidden' });
                 break;
             default:
-                styles.push(cardStyles.default);
+                styles.push({
+                    shadowColor: colors.shadow.medium,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 1,
+                    shadowRadius: 8,
+                    elevation: 3,
+                });
         }
 
         return styles;
@@ -62,17 +85,17 @@ const Card = ({
         return (
             <Animated.View style={[...getCardStyle(), style, animatedStyle]}>
                 <LinearGradient
-                    colors={gradientColors || COLORS.gradientPrimary}
+                    colors={gradientColors || colors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={cardStyles.gradientBackground}
+                    style={{ borderRadius: 16 }}
                 >
                     <CardContainer
                         onPress={onPress}
                         onPressIn={handlePressIn}
                         onPressOut={handlePressOut}
                         activeOpacity={0.9}
-                        style={cardStyles.gradientContent}
+                        style={{ padding: 16 }}
                     >
                         {children}
                     </CardContainer>
@@ -94,50 +117,5 @@ const Card = ({
         </Animated.View>
     );
 };
-
-const cardStyles = StyleSheet.create({
-    base: {
-        backgroundColor: COLORS.cardBackground,
-        borderRadius: 16,
-        padding: 16,
-        marginVertical: 8,
-    },
-    default: {
-        shadowColor: COLORS.shadow.medium,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    elevated: {
-        shadowColor: COLORS.shadow.large,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 12,
-        elevation: 6,
-    },
-    outlined: {
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        shadowOpacity: 0,
-        elevation: 0,
-    },
-    gradient: {
-        padding: 0,
-        overflow: 'hidden',
-    },
-    gradientBackground: {
-        borderRadius: 16,
-    },
-    gradientContent: {
-        padding: 16,
-    },
-});
 
 export default Card;

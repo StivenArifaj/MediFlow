@@ -1,5 +1,5 @@
 // MediFlow Main App Entry Point
-// Initializes database, notifications, and navigation
+// Initializes database, notifications, and checks for existing session
 
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
@@ -12,15 +12,18 @@ import notificationService from './src/services/notificationService';
 // Stores
 import useUserStore from './src/store/useUserStore';
 
+// Theme
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
+
 // Navigation
 import AppNavigator from './src/navigation/AppNavigator';
 
-// Constants
-import COLORS from './src/constants/colors';
-
-export default function App() {
+// Inner app component that can use theme
+function AppContent() {
   const [isReady, setIsReady] = useState(false);
-  const { initUser, loadUser } = useUserStore();
+  const { checkSession } = useUserStore();
+  const { colors } = useTheme();
 
   useEffect(() => {
     initializeApp();
@@ -40,19 +43,13 @@ export default function App() {
       await notificationService.init();
       console.log('✅ Notifications initialized');
 
-      // Initialize or load user
-      console.log('👤 Loading user...');
-      const userId = 'local_user_1';
-      let user = await databaseService.getUser(userId);
-
-      if (!user) {
-        console.log('Creating new user...');
-        await initUser({ name: 'User' });
-        console.log('✅ User created');
+      // Check for existing session
+      console.log('👤 Checking session...');
+      const user = await checkSession();
+      if (user) {
+        console.log('✅ Session restored for:', user.name);
       } else {
-        console.log('Loading existing user...');
-        await loadUser(userId);
-        console.log('✅ User loaded');
+        console.log('ℹ️ No active session — showing auth screens');
       }
 
       console.log('🎉 MediFlow ready!');
@@ -60,7 +57,6 @@ export default function App() {
     } catch (error) {
       console.error('❌ App initialization error:', error);
       console.error('Error details:', error.message);
-      console.error('Stack:', error.stack);
       // Still show app even if init fails
       setIsReady(true);
     }
@@ -68,15 +64,23 @@ export default function App() {
 
   if (!isReady) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
+  return <AppNavigator />;
+}
+
+export default function App() {
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <LanguageProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }
@@ -86,6 +90,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
   },
 });

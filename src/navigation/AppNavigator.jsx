@@ -1,5 +1,5 @@
 // MediFlow App Navigator
-// Navigation structure with bottom tabs and stack navigation
+// Navigation structure with auth stack, bottom tabs, and stack navigation
 
 import React from 'react';
 import { Text, Platform, View, TouchableOpacity } from 'react-native';
@@ -10,7 +10,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Home, History, User, Plus, ScanLine, Pill, Bell, ChevronLeft, Activity } from 'lucide-react-native';
 
-// Screens
+// Theme
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+
+// Store
+import useUserStore from '../store/useUserStore';
+
+// Auth Screens
+import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+
+// Main Screens
 import HomeScreen from '../screens/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -20,20 +32,23 @@ import ReminderSetupScreen from '../screens/ReminderSetupScreen';
 import ScanScreen from '../screens/ScanScreen';
 import HealthScreen from '../screens/HealthScreen';
 
-// Constants
-import COLORS from '../constants/colors';
+// Services
 import notificationService from '../services/notificationService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const AuthStackNav = createNativeStackNavigator();
+
+const COLORS_WHITE = '#FFFFFF';
 
 // Custom Header Component
 const CustomHeader = ({ title, navigation, back }) => {
     const insets = useSafeAreaInsets();
+    const { colors } = useTheme();
 
     return (
         <LinearGradient
-            colors={COLORS.gradientPrimary}
+            colors={colors.gradientPrimary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -54,11 +69,11 @@ const CustomHeader = ({ title, navigation, back }) => {
                     onPress={() => navigation.goBack()}
                     style={{ marginRight: 15 }}
                 >
-                    <ChevronLeft color={COLORS.white} size={28} />
+                    <ChevronLeft color={COLORS_WHITE} size={28} />
                 </TouchableOpacity>
             )}
             <Text style={{
-                color: COLORS.white,
+                color: '#FFFFFF',
                 fontSize: 20,
                 fontWeight: 'bold',
                 flex: 1
@@ -69,8 +84,24 @@ const CustomHeader = ({ title, navigation, back }) => {
     );
 };
 
+// ==================== AUTH STACK ====================
+const AuthStack = () => {
+    return (
+        <AuthStackNav.Navigator
+            screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+        >
+            <AuthStackNav.Screen name="Welcome" component={WelcomeScreen} />
+            <AuthStackNav.Screen name="Login" component={LoginScreen} />
+            <AuthStackNav.Screen name="Register" component={RegisterScreen} />
+        </AuthStackNav.Navigator>
+    );
+};
+
+// ==================== MAIN APP STACKS ====================
+
 // Home Stack Navigator (for screens accessible from Home)
 const HomeStack = () => {
+    const { t } = useLanguage();
     return (
         <Stack.Navigator
             screenOptions={{
@@ -91,22 +122,22 @@ const HomeStack = () => {
             <Stack.Screen
                 name="AddMedicine"
                 component={AddMedicineScreen}
-                options={{ title: 'Add Medicine' }}
+                options={{ title: t('navigation.addMedicine') }}
             />
             <Stack.Screen
                 name="ScanMedicine"
                 component={ScanScreen}
-                options={{ title: 'Scan Medicine', headerShown: false }}
+                options={{ title: t('navigation.scanMedicine'), headerShown: false }}
             />
             <Stack.Screen
                 name="MedicineDetail"
                 component={MedicineDetailScreen}
-                options={{ title: 'Medicine Details' }}
+                options={{ title: t('navigation.medicineDetails') }}
             />
             <Stack.Screen
                 name="ReminderSetup"
                 component={ReminderSetupScreen}
-                options={{ title: 'Set Reminder' }}
+                options={{ title: t('navigation.setReminder') }}
             />
         </Stack.Navigator>
     );
@@ -115,10 +146,13 @@ const HomeStack = () => {
 // Main Tab Navigator with Safe Area Fix
 const TabNavigator = () => {
     const insets = useSafeAreaInsets();
+    const { colors } = useTheme();
+    const { t } = useLanguage();
 
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
+                tabBarLabel: t(`tabs.${route.name.toLowerCase()}`),
                 tabBarIcon: ({ focused, color, size }) => {
                     if (route.name === 'Home') {
                         return <Home size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
@@ -130,21 +164,18 @@ const TabNavigator = () => {
                         return <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} />;
                     }
                 },
-                tabBarActiveTintColor: COLORS.primary,
-                tabBarInactiveTintColor: COLORS.textSecondary,
+                tabBarActiveTintColor: colors.tabActive,
+                tabBarInactiveTintColor: colors.tabInactive,
                 tabBarStyle: {
-                    paddingBottom: Math.max(insets.bottom, 8), // Safe area padding
+                    paddingBottom: Math.max(insets.bottom, 8),
                     paddingTop: 8,
-                    height: 60 + Math.max(insets.bottom, 8), // Adjust height for safe area
-                    backgroundColor: COLORS.white,
+                    height: 60 + Math.max(insets.bottom, 8),
+                    backgroundColor: colors.tabBarBackground,
                     borderTopWidth: 1,
-                    borderTopColor: COLORS.borderLight,
+                    borderTopColor: colors.tabBarBorder,
                     elevation: 8,
-                    shadowColor: COLORS.shadow.medium,
-                    shadowOffset: {
-                        width: 0,
-                        height: -2,
-                    },
+                    shadowColor: colors.shadow.medium,
+                    shadowOffset: { width: 0, height: -2 },
                     shadowOpacity: 1,
                     shadowRadius: 8,
                 },
@@ -164,9 +195,10 @@ const TabNavigator = () => {
     );
 };
 
-// Main App Navigator
+// ==================== ROOT NAVIGATOR ====================
 const AppNavigator = () => {
     const navigationRef = React.useRef();
+    const isAuthenticated = useUserStore(state => state.isAuthenticated);
 
     React.useEffect(() => {
         // Handle notification tap response
@@ -174,7 +206,6 @@ const AppNavigator = () => {
             const data = response.notification.request.content.data;
 
             if (data?.type === 'medicine_reminder' && data?.med_id) {
-                // Navigate to medicine details
                 if (navigationRef.current) {
                     navigationRef.current.navigate('MedicineDetail', {
                         medId: data.med_id
@@ -190,7 +221,7 @@ const AppNavigator = () => {
 
     return (
         <NavigationContainer ref={navigationRef}>
-            <TabNavigator />
+            {isAuthenticated ? <TabNavigator /> : <AuthStack />}
         </NavigationContainer>
     );
 };

@@ -4,7 +4,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Button from './Button';
-import COLORS from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import TYPOGRAPHY from '../../constants/typography';
 
 const EmptyState = ({
@@ -15,11 +15,13 @@ const EmptyState = ({
     onAction,
     style,
 }) => {
+    const { colors } = useTheme();
+
     return (
         <View style={[styles.container, style]}>
             <Text style={styles.icon}>{icon}</Text>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.description}>{description}</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
             {actionText && onAction && (
                 <Button
                     title={actionText}
@@ -46,13 +48,11 @@ const styles = StyleSheet.create({
     title: {
         fontSize: TYPOGRAPHY.fontSize.h2,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 12,
         textAlign: 'center',
     },
     description: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textSecondary,
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 24,

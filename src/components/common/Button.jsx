@@ -4,7 +4,7 @@
 import React, { useRef } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import COLORS from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import TYPOGRAPHY from '../../constants/typography';
 
 const Button = ({
@@ -19,6 +19,7 @@ const Button = ({
     textStyle,
     gradientColors,
 }) => {
+    const { colors } = useTheme();
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const handlePressIn = () => {
@@ -36,78 +37,83 @@ const Button = ({
             friction: 8,
         }).start();
     };
+
     const getButtonStyle = () => {
-        const styles = [buttonStyles.base];
+        const styles = [{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 12,
+        }];
 
         // Variant styles
         switch (variant) {
             case 'primary':
-                styles.push(buttonStyles.primary);
+                styles.push({ backgroundColor: colors.primary });
                 break;
             case 'secondary':
-                styles.push(buttonStyles.secondary);
+                styles.push({ backgroundColor: colors.success });
                 break;
             case 'outline':
-                styles.push(buttonStyles.outline);
+                styles.push({
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderColor: colors.primary,
+                });
                 break;
             case 'danger':
-                styles.push(buttonStyles.danger);
+                styles.push({ backgroundColor: colors.error });
                 break;
             case 'gradient':
-                styles.push(buttonStyles.gradient);
+                styles.push({ padding: 0, overflow: 'hidden' });
                 break;
         }
 
         // Size styles
         switch (size) {
             case 'small':
-                styles.push(buttonStyles.small);
-                break;
-            case 'medium':
-                styles.push(buttonStyles.medium);
+                styles.push({ paddingHorizontal: 16, paddingVertical: 8 });
                 break;
             case 'large':
-                styles.push(buttonStyles.large);
+                styles.push({ paddingHorizontal: 32, paddingVertical: 16 });
                 break;
+            default:
+                styles.push({ paddingHorizontal: 24, paddingVertical: 12 });
         }
 
         // Disabled style
         if (disabled) {
-            styles.push(buttonStyles.disabled);
+            styles.push({ opacity: 0.5 });
         }
 
         return styles;
     };
 
     const getTextStyle = () => {
-        const styles = [buttonStyles.text];
+        const styles = [{ fontWeight: TYPOGRAPHY.fontWeight.semiBold, textAlign: 'center' }];
 
         // Variant text styles
         switch (variant) {
             case 'primary':
-                styles.push(buttonStyles.primaryText);
-                break;
             case 'secondary':
-                styles.push(buttonStyles.secondaryText);
+            case 'danger':
+                styles.push({ color: colors.textWhite, fontSize: TYPOGRAPHY.fontSize.body });
                 break;
             case 'outline':
-                styles.push(buttonStyles.outlineText);
-                break;
-            case 'danger':
-                styles.push(buttonStyles.dangerText);
+                styles.push({ color: colors.primary, fontSize: TYPOGRAPHY.fontSize.body });
                 break;
         }
 
         // Size text styles
         switch (size) {
             case 'small':
-                styles.push(buttonStyles.smallText);
-                break;
-            case 'medium':
-                styles.push(buttonStyles.mediumText);
+                styles.push({ fontSize: TYPOGRAPHY.fontSize.small });
                 break;
             case 'large':
-                styles.push(buttonStyles.largeText);
+                styles.push({ fontSize: TYPOGRAPHY.fontSize.h3 });
+                break;
+            default:
+                styles.push({ fontSize: TYPOGRAPHY.fontSize.body });
                 break;
         }
 
@@ -120,10 +126,10 @@ const Button = ({
         return (
             <Animated.View style={[...getButtonStyle(), style, animatedStyle]}>
                 <LinearGradient
-                    colors={gradientColors || COLORS.gradientPrimary}
+                    colors={gradientColors || colors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={buttonStyles.gradientBackground}
+                    style={{ borderRadius: 12 }}
                 >
                     <TouchableOpacity
                         onPress={onPress}
@@ -131,14 +137,20 @@ const Button = ({
                         onPressOut={handlePressOut}
                         disabled={disabled || loading}
                         activeOpacity={0.9}
-                        style={buttonStyles.gradientContent}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingHorizontal: 24,
+                            paddingVertical: 12,
+                        }}
                     >
                         {loading ? (
-                            <ActivityIndicator color={COLORS.white} />
+                            <ActivityIndicator color={colors.textWhite} />
                         ) : (
                             <>
                                 {icon && icon}
-                                <Text style={[...getTextStyle(), textStyle, { color: COLORS.white }]}>{title}</Text>
+                                <Text style={[...getTextStyle(), textStyle, { color: colors.textWhite }]}>{title}</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -159,7 +171,7 @@ const Button = ({
             >
                 {loading ? (
                     <ActivityIndicator
-                        color={variant === 'outline' ? COLORS.primary : COLORS.white}
+                        color={variant === 'outline' ? colors.primary : colors.textWhite}
                     />
                 ) : (
                     <>
@@ -171,96 +183,5 @@ const Button = ({
         </Animated.View>
     );
 };
-
-const buttonStyles = StyleSheet.create({
-    base: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 12,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-    },
-
-    // Variants
-    primary: {
-        backgroundColor: COLORS.primary,
-    },
-    secondary: {
-        backgroundColor: COLORS.success,
-    },
-    outline: {
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderColor: COLORS.primary,
-    },
-    danger: {
-        backgroundColor: COLORS.error,
-    },
-    gradient: {
-        padding: 0,
-        overflow: 'hidden',
-    },
-    gradientBackground: {
-        borderRadius: 12,
-    },
-    gradientContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-    },
-
-    // Sizes
-    small: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-    },
-    medium: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-    },
-    large: {
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-    },
-
-    // Disabled
-    disabled: {
-        opacity: 0.5,
-    },
-
-    // Text styles
-    text: {
-        fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        textAlign: 'center',
-    },
-    primaryText: {
-        color: COLORS.white,
-        fontSize: TYPOGRAPHY.fontSize.body,
-    },
-    secondaryText: {
-        color: COLORS.white,
-        fontSize: TYPOGRAPHY.fontSize.body,
-    },
-    outlineText: {
-        color: COLORS.primary,
-        fontSize: TYPOGRAPHY.fontSize.body,
-    },
-    dangerText: {
-        color: COLORS.white,
-        fontSize: TYPOGRAPHY.fontSize.body,
-    },
-    smallText: {
-        fontSize: TYPOGRAPHY.fontSize.small,
-    },
-    mediumText: {
-        fontSize: TYPOGRAPHY.fontSize.body,
-    },
-    largeText: {
-        fontSize: TYPOGRAPHY.fontSize.h3,
-    },
-});
 
 export default Button;

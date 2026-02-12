@@ -17,22 +17,27 @@ import { Check, X, SkipForward, Clock } from 'lucide-react-native';
 // Components
 import Card from '../components/common/Card';
 
+// Theme
+import { useTheme } from '../context/ThemeContext';
+
 // Stores
 import useUserStore from '../store/useUserStore';
+import { useLanguage } from '../context/LanguageContext';
 
 // Services
 import databaseService from '../services/databaseService';
 
 // Constants
-import COLORS from '../constants/colors';
 import TYPOGRAPHY from '../constants/typography';
 
 const HistoryScreen = () => {
     const { user } = useUserStore();
+    const { colors } = useTheme();
+    const { t } = useLanguage();
     const [history, setHistory] = useState([]);
     const [stats, setStats] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState('timeline'); // timeline, stats
+    const [activeTab, setActiveTab] = useState('timeline');
 
     useEffect(() => {
         if (user?.user_id) {
@@ -63,26 +68,26 @@ const HistoryScreen = () => {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'taken':
-                return <Check size={16} color={COLORS.taken} />;
+                return <Check size={16} color={colors.taken} />;
             case 'skipped':
-                return <SkipForward size={16} color={COLORS.skipped} />;
+                return <SkipForward size={16} color={colors.skipped} />;
             case 'missed':
-                return <X size={16} color={COLORS.missed} />;
+                return <X size={16} color={colors.missed} />;
             default:
-                return <Clock size={16} color={COLORS.textSecondary} />;
+                return <Clock size={16} color={colors.textSecondary} />;
         }
     };
 
     const getStatusColor = (status) => {
         switch (status) {
             case 'taken':
-                return COLORS.taken;
+                return colors.taken;
             case 'skipped':
-                return COLORS.skipped;
+                return colors.skipped;
             case 'missed':
-                return COLORS.missed;
+                return colors.missed;
             default:
-                return COLORS.textSecondary;
+                return colors.textSecondary;
         }
     };
 
@@ -102,9 +107,9 @@ const HistoryScreen = () => {
         yesterday.setDate(yesterday.getDate() - 1);
 
         if (date.toDateString() === today.toDateString()) {
-            return 'Today';
+            return t('home.today');
         } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'Yesterday';
+            return t('common.yesterday');
         } else {
             return date.toLocaleDateString('en-US', {
                 month: 'short',
@@ -113,7 +118,6 @@ const HistoryScreen = () => {
         }
     };
 
-    // Group history by date
     const groupedHistory = history.reduce((groups, entry) => {
         const date = formatDate(entry.scheduled_time);
         if (!groups[date]) {
@@ -124,33 +128,41 @@ const HistoryScreen = () => {
     }, {});
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Gradient Header */}
             <LinearGradient
-                colors={COLORS.gradientHero}
+                colors={colors.gradientHero}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
             >
-                <Text style={styles.headerTitle}>History</Text>
+                <Text style={styles.headerTitle}>{t('history.title')}</Text>
             </LinearGradient>
 
             {/* Tabs */}
-            <View style={styles.tabs}>
+            <View style={[styles.tabs, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                 <TouchableOpacity
-                    style={[styles.tab, activeTab === 'timeline' ? styles.tabActive : null]}
+                    style={[styles.tab, activeTab === 'timeline' ? { borderBottomColor: colors.primary } : null]}
                     onPress={() => setActiveTab('timeline')}
                 >
-                    <Text style={[styles.tabText, activeTab === 'timeline' ? styles.tabTextActive : null]}>
-                        Timeline
+                    <Text style={[
+                        styles.tabText,
+                        { color: colors.textSecondary },
+                        activeTab === 'timeline' ? { color: colors.primary, fontWeight: TYPOGRAPHY.fontWeight.semiBold } : null,
+                    ]}>
+                        {t('history.timeline')}
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={[styles.tab, activeTab === 'stats' ? styles.tabActive : null]}
+                    style={[styles.tab, activeTab === 'stats' ? { borderBottomColor: colors.primary } : null]}
                     onPress={() => setActiveTab('stats')}
                 >
-                    <Text style={[styles.tabText, activeTab === 'stats' ? styles.tabTextActive : null]}>
-                        Statistics
+                    <Text style={[
+                        styles.tabText,
+                        { color: colors.textSecondary },
+                        activeTab === 'stats' ? { color: colors.primary, fontWeight: TYPOGRAPHY.fontWeight.semiBold } : null,
+                    ]}>
+                        {t('history.statistics')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -162,19 +174,18 @@ const HistoryScreen = () => {
                 }
             >
                 {activeTab === 'timeline' ? (
-                    /* Timeline View */
                     <View style={styles.content}>
                         {history.length === 0 ? (
                             <Card>
-                                <Text style={styles.emptyText}>No history yet</Text>
-                                <Text style={styles.emptySubtext}>
-                                    Your medication intake history will appear here
+                                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('history.noHistory')}</Text>
+                                <Text style={[styles.emptySubtext, { color: colors.textDisabled }]}>
+                                    {t('history.noHistoryDesc')}
                                 </Text>
                             </Card>
                         ) : (
                             Object.keys(groupedHistory).map((date) => (
                                 <View key={date} style={styles.dateGroup}>
-                                    <Text style={styles.dateHeader}>{date}</Text>
+                                    <Text style={[styles.dateHeader, { color: colors.textPrimary }]}>{date}</Text>
                                     {groupedHistory[date].map((entry) => (
                                         <Card key={entry.entry_id} style={styles.historyCard}>
                                             <View style={styles.historyHeader}>
@@ -187,7 +198,7 @@ const HistoryScreen = () => {
                                                     >
                                                         {getStatusIcon(entry.status)}
                                                     </Text>
-                                                    <Text style={styles.historyTime}>
+                                                    <Text style={[styles.historyTime, { color: colors.textPrimary }]}>
                                                         {formatTime(entry.actual_time || entry.scheduled_time)}
                                                     </Text>
                                                 </View>
@@ -200,16 +211,16 @@ const HistoryScreen = () => {
                                                     {entry.status}
                                                 </Text>
                                             </View>
-                                            <Text style={styles.medicineName}>
-                                                {entry.medicine_name || 'Medicine'}
+                                            <Text style={[styles.medicineName, { color: colors.textPrimary }]}>
+                                                {entry.medicine_name || t('common.medicine')}
                                             </Text>
                                             {entry.late_by_minutes > 0 && (
-                                                <Text style={styles.lateText}>
-                                                    {entry.late_by_minutes} minutes late
+                                                <Text style={[styles.lateText, { color: colors.warning }]}>
+                                                    {t('history.minutesLate').replace('{min}', entry.late_by_minutes)}
                                                 </Text>
                                             )}
                                             {entry.notes && (
-                                                <Text style={styles.notes}>Note: {entry.notes}</Text>
+                                                <Text style={[styles.notes, { color: colors.textSecondary }]}>{t('addMedicine.notes')}: {entry.notes}</Text>
                                             )}
                                         </Card>
                                     ))}
@@ -218,58 +229,55 @@ const HistoryScreen = () => {
                         )}
                     </View>
                 ) : (
-                    /* Statistics View */
                     <View style={styles.content}>
                         {stats && (
                             <>
-                                {/* Overall Adherence */}
                                 <Card style={styles.statsCard}>
-                                    <Text style={styles.statsTitle}>Overall Adherence</Text>
-                                    <Text style={styles.statsPercentage}>{stats.adherenceRate}%</Text>
-                                    <View style={styles.progressBar}>
+                                    <Text style={[styles.statsTitle, { color: colors.textPrimary }]}>{t('history.overallAdherence')}</Text>
+                                    <Text style={[styles.statsPercentage, { color: colors.primary }]}>{stats.adherenceRate}%</Text>
+                                    <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
                                         <View
                                             style={[
                                                 styles.progressFill,
-                                                { width: `${stats.adherenceRate}%` },
+                                                { width: `${stats.adherenceRate}%`, backgroundColor: colors.primary },
                                             ]}
                                         />
                                     </View>
-                                    <Text style={styles.statsSubtext}>
-                                        {stats.taken} taken / {stats.total} total (Last 30 days)
+                                    <Text style={[styles.statsSubtext, { color: colors.textSecondary }]}>
+                                        {/* Simplified stats text to avoid complex pluralization for now */}
+                                        {stats.taken} / {stats.total} ({t('history.last30')})
                                     </Text>
                                 </Card>
 
-                                {/* Breakdown */}
                                 <Card style={styles.statsCard}>
-                                    <Text style={styles.statsTitle}>Breakdown</Text>
+                                    <Text style={[styles.statsTitle, { color: colors.textPrimary }]}>{t('history.breakdown')}</Text>
                                     <View style={styles.statsRow}>
                                         <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: COLORS.taken }]}>
+                                            <Text style={[styles.statValue, { color: colors.taken }]}>
                                                 {stats.taken}
                                             </Text>
-                                            <Text style={styles.statLabel}>Taken</Text>
+                                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.taken')}</Text>
                                         </View>
                                         <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: COLORS.skipped }]}>
+                                            <Text style={[styles.statValue, { color: colors.skipped }]}>
                                                 {stats.skipped}
                                             </Text>
-                                            <Text style={styles.statLabel}>Skipped</Text>
+                                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.skipped')}</Text>
                                         </View>
                                         <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: COLORS.missed }]}>
+                                            <Text style={[styles.statValue, { color: colors.missed }]}>
                                                 {stats.missed}
                                             </Text>
-                                            <Text style={styles.statLabel}>Missed</Text>
+                                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Missed</Text>
                                         </View>
                                     </View>
                                 </Card>
 
-                                {/* Encouragement */}
                                 {stats.adherenceRate >= 80 && (
-                                    <Card variant="outlined" style={styles.encouragementCard}>
+                                    <Card variant="outlined" style={[styles.encouragementCard, { backgroundColor: colors.success + '10', borderColor: colors.success }]}>
                                         <Text style={styles.encouragementIcon}>🎉</Text>
-                                        <Text style={styles.encouragementText}>
-                                            Great job! You're doing excellent with your medication adherence!
+                                        <Text style={[styles.encouragementText, { color: colors.textPrimary }]}>
+                                            {t('history.encouragement')}
                                         </Text>
                                     </Card>
                                 )}
@@ -285,7 +293,6 @@ const HistoryScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.lightGray,
     },
     header: {
         paddingTop: Platform.OS === 'android' ? 40 : 50,
@@ -294,21 +301,15 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
         elevation: 4,
-        shadowColor: COLORS.shadow.medium,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
     },
     headerTitle: {
         fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
     },
     tabs: {
         flexDirection: 'row',
-        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
     },
     tab: {
         flex: 1,
@@ -317,16 +318,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 2,
         borderBottomColor: 'transparent',
     },
-    tabActive: {
-        borderBottomColor: COLORS.primary,
-    },
     tabText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textSecondary,
-    },
-    tabTextActive: {
-        color: COLORS.primary,
-        fontWeight: TYPOGRAPHY.fontWeight.semiBold,
     },
     scrollView: {
         flex: 1,
@@ -336,13 +329,11 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textSecondary,
         textAlign: 'center',
         marginBottom: 8,
     },
     emptySubtext: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textDisabled,
         textAlign: 'center',
     },
     dateGroup: {
@@ -351,7 +342,6 @@ const styles = StyleSheet.create({
     dateHeader: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 12,
         paddingLeft: 4,
     },
@@ -375,7 +365,6 @@ const styles = StyleSheet.create({
     historyTime: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textPrimary,
     },
     statusBadge: {
         paddingHorizontal: 12,
@@ -386,16 +375,13 @@ const styles = StyleSheet.create({
     },
     medicineName: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textPrimary,
         marginBottom: 4,
     },
     lateText: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.warning,
     },
     notes: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
         fontStyle: 'italic',
         marginTop: 4,
     },
@@ -405,30 +391,25 @@ const styles = StyleSheet.create({
     statsTitle: {
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 16,
     },
     statsPercentage: {
         fontSize: 48,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.primary,
         textAlign: 'center',
         marginBottom: 16,
     },
     progressBar: {
         height: 12,
-        backgroundColor: COLORS.border,
         borderRadius: 6,
         overflow: 'hidden',
         marginBottom: 8,
     },
     progressFill: {
         height: '100%',
-        backgroundColor: COLORS.primary,
     },
     statsSubtext: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
         textAlign: 'center',
     },
     statsRow: {
@@ -445,13 +426,10 @@ const styles = StyleSheet.create({
     },
     statLabel: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
     },
     encouragementCard: {
         alignItems: 'center',
         padding: 20,
-        backgroundColor: COLORS.success + '10',
-        borderColor: COLORS.success,
     },
     encouragementIcon: {
         fontSize: 48,
@@ -459,7 +437,6 @@ const styles = StyleSheet.create({
     },
     encouragementText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textPrimary,
         textAlign: 'center',
         lineHeight: 24,
     },

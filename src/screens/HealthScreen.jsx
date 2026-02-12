@@ -1,7 +1,7 @@
 // MediFlow Health Screen
 // Dashboard for tracking health measurements
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -14,41 +14,48 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Activity, Heart, Scale, Thermometer, Plus, X, Droplet, Wind, TrendingUp, Moon, Footprints, Ruler, Circle } from 'lucide-react-native';
+import { Activity, Heart, Scale, Thermometer, Plus, X, Droplet, Wind, TrendingUp, Moon, Footprints, Ruler } from 'lucide-react-native';
 
 // Components
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import FloatingActionButton from '../components/common/FloatingActionButton';
 
+// Theme
+import { useTheme } from '../context/ThemeContext';
+
 // Stores
 import useHealthStore from '../store/useHealthStore';
 import useUserStore from '../store/useUserStore';
+import { useLanguage } from '../context/LanguageContext';
 
 // Constants
-import COLORS from '../constants/colors';
 import TYPOGRAPHY from '../constants/typography';
 
-const MEASUREMENT_TYPES = [
-    { id: 'weight', label: 'Weight', icon: <Scale size={24} color={COLORS.primary} />, unit: 'kg' },
-    { id: 'blood_pressure', label: 'Blood Pressure', icon: <Activity size={24} color={COLORS.error} />, unit: 'mmHg' },
-    { id: 'heart_rate', label: 'Heart Rate', icon: <Heart size={24} color={COLORS.error} />, unit: 'bpm' },
-    { id: 'glucose', label: 'Blood Glucose', icon: <Droplet size={24} color={COLORS.secondary} />, unit: 'mg/dL' },
-    { id: 'temperature', label: 'Temperature', icon: <Thermometer size={24} color={COLORS.warning} />, unit: '°C' },
-    { id: 'spo2', label: 'SpO2', icon: <Wind size={24} color={COLORS.primary} />, unit: '%' },
-    { id: 'bmi', label: 'BMI', icon: <TrendingUp size={24} color={COLORS.secondary} />, unit: '' },
-    { id: 'cholesterol', label: 'Cholesterol', icon: <Droplet size={24} color={COLORS.warning} />, unit: 'mg/dL' },
-    { id: 'steps', label: 'Steps', icon: <Footprints size={24} color={COLORS.primary} />, unit: 'steps' },
-    { id: 'sleep', label: 'Sleep Hours', icon: <Moon size={24} color={COLORS.secondary} />, unit: 'hrs' },
-    { id: 'water', label: 'Water Intake', icon: <Droplet size={24} color={COLORS.primary} />, unit: 'L' },
-    { id: 'waist', label: 'Waist', icon: <Ruler size={24} color={COLORS.warning} />, unit: 'cm' },
-    { id: 'respiratory_rate', label: 'Respiratory Rate', icon: <Wind size={24} color={COLORS.error} />, unit: 'bpm' },
+const getMeasurementTypes = (colors, t) => [
+    { id: 'weight', label: t('health.types.weight'), icon: <Scale size={24} color={colors.primary} />, unit: 'kg' },
+    { id: 'blood_pressure', label: t('health.types.blood_pressure'), icon: <Activity size={24} color={colors.error} />, unit: 'mmHg' },
+    { id: 'heart_rate', label: t('health.types.heart_rate'), icon: <Heart size={24} color={colors.error} />, unit: 'bpm' },
+    { id: 'glucose', label: t('health.types.glucose'), icon: <Droplet size={24} color={colors.secondary} />, unit: 'mg/dL' },
+    { id: 'temperature', label: t('health.types.temperature'), icon: <Thermometer size={24} color={colors.warning} />, unit: '°C' },
+    { id: 'spo2', label: t('health.types.spo2'), icon: <Wind size={24} color={colors.primary} />, unit: '%' },
+    { id: 'bmi', label: t('health.types.bmi'), icon: <TrendingUp size={24} color={colors.secondary} />, unit: '' },
+    { id: 'cholesterol', label: t('health.types.cholesterol'), icon: <Droplet size={24} color={colors.warning} />, unit: 'mg/dL' },
+    { id: 'steps', label: t('health.types.steps'), icon: <Footprints size={24} color={colors.primary} />, unit: 'steps' },
+    { id: 'sleep', label: t('health.types.sleep'), icon: <Moon size={24} color={colors.secondary} />, unit: 'hrs' },
+    { id: 'water', label: t('health.types.water'), icon: <Droplet size={24} color={colors.primary} />, unit: 'L' },
+    { id: 'waist', label: t('health.types.waist'), icon: <Ruler size={24} color={colors.warning} />, unit: 'cm' },
+    { id: 'respiratory_rate', label: t('health.types.respiratory_rate'), icon: <Wind size={24} color={colors.error} />, unit: 'bpm' },
 ];
 
 const HealthScreen = () => {
     const insets = useSafeAreaInsets();
     const { user } = useUserStore();
     const { measurements, loadMeasurements, addMeasurement, loading } = useHealthStore();
+    const { colors } = useTheme();
+    const { t } = useLanguage();
+
+    const MEASUREMENT_TYPES = useMemo(() => getMeasurementTypes(colors, t), [colors, t]);
 
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedType, setSelectedType] = useState(MEASUREMENT_TYPES[0]);
@@ -63,7 +70,7 @@ const HealthScreen = () => {
 
     const handleAddMeasurement = async () => {
         if (!value) {
-            Alert.alert('Error', 'Please enter a value');
+            Alert.alert(t('common.error'), t('addMedicine.errorValue'));
             return;
         }
 
@@ -78,9 +85,9 @@ const HealthScreen = () => {
             setModalVisible(false);
             setValue('');
             setNotes('');
-            Alert.alert('Success', 'Measurement added successfully');
+            Alert.alert(t('common.success'), t('health.measurementAdded'));
         } catch (error) {
-            Alert.alert('Error', 'Failed to add measurement');
+            Alert.alert(t('common.error'), t('health.failedToAdd'));
         }
     };
 
@@ -89,16 +96,16 @@ const HealthScreen = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Gradient Header */}
             <LinearGradient
-                colors={COLORS.gradientHero}
+                colors={colors.gradientHero}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.header, { paddingTop: insets.top + 20 }]}
             >
-                <Text style={styles.headerTitle}>Health Tracker</Text>
-                <Text style={styles.headerSubtitle}>Monitor your vitals</Text>
+                <Text style={styles.headerTitle}>{t('health.title')}</Text>
+                <Text style={styles.headerSubtitle}>{t('health.track')}</Text>
             </LinearGradient>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -113,15 +120,15 @@ const HealthScreen = () => {
                             }}>
                                 <View style={styles.metricHeader}>
                                     {type.icon}
-                                    <Text style={styles.metricLabel}>{type.label}</Text>
+                                    <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>{type.label}</Text>
                                 </View>
                                 <View style={styles.metricValueContainer}>
-                                    <Text style={styles.metricValue}>
+                                    <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
                                         {latest ? latest.value : '--'}
                                     </Text>
-                                    <Text style={styles.metricUnit}>{type.unit}</Text>
+                                    <Text style={[styles.metricUnit, { color: colors.textSecondary }]}>{type.unit}</Text>
                                 </View>
-                                <Text style={styles.metricDate}>
+                                <Text style={[styles.metricDate, { color: colors.textDisabled }]}>
                                     {latest ? new Date(latest.date).toLocaleDateString() : 'No data'}
                                 </Text>
                             </Card>
@@ -131,9 +138,9 @@ const HealthScreen = () => {
 
                 {/* Recent History */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Recent History</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('medicineDetail.history')}</Text>
                     {measurements.length === 0 ? (
-                        <Text style={styles.emptyText}>No measurements recorded yet.</Text>
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('health.noMeasurements')}</Text>
                     ) : (
                         measurements.slice(0, 10).map((item) => {
                             const typeConfig = MEASUREMENT_TYPES.find(t => t.id === item.type);
@@ -142,14 +149,14 @@ const HealthScreen = () => {
                                     <View style={styles.historyLeft}>
                                         {typeConfig?.icon}
                                         <View style={styles.historyInfo}>
-                                            <Text style={styles.historyType}>{typeConfig?.label || item.type}</Text>
-                                            <Text style={styles.historyDate}>
+                                            <Text style={[styles.historyType, { color: colors.textPrimary }]}>{typeConfig?.label || item.type}</Text>
+                                            <Text style={[styles.historyDate, { color: colors.textSecondary }]}>
                                                 {new Date(item.date).toLocaleString()}
                                             </Text>
                                         </View>
                                     </View>
-                                    <Text style={styles.historyValue}>
-                                        {item.value} <Text style={styles.historyUnit}>{item.unit}</Text>
+                                    <Text style={[styles.historyValue, { color: colors.primary }]}>
+                                        {item.value} <Text style={[styles.historyUnit, { color: colors.textSecondary }]}>{item.unit}</Text>
                                     </Text>
                                 </Card>
                             );
@@ -161,7 +168,7 @@ const HealthScreen = () => {
             </ScrollView>
 
             <FloatingActionButton
-                icon={<Plus size={24} color={COLORS.white} />}
+                icon={<Plus size={24} color="#FFFFFF" />}
                 onPress={() => setModalVisible(true)}
             />
 
@@ -173,11 +180,11 @@ const HealthScreen = () => {
                 onRequestClose={() => setModalVisible(false)}
             >
                 <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add Measurement</Text>
+                            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('health.add')}</Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <X size={24} color={COLORS.textSecondary} />
+                                <X size={24} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -187,13 +194,21 @@ const HealthScreen = () => {
                                     key={type.id}
                                     style={[
                                         styles.typeChip,
-                                        selectedType.id === type.id && styles.typeChipActive
+                                        {
+                                            backgroundColor: colors.lightGray,
+                                            borderColor: colors.border,
+                                        },
+                                        selectedType.id === type.id ? {
+                                            backgroundColor: colors.primary + '20',
+                                            borderColor: colors.primary,
+                                        } : null,
                                     ]}
                                     onPress={() => setSelectedType(type)}
                                 >
                                     <Text style={[
                                         styles.typeChipText,
-                                        selectedType.id === type.id && styles.typeChipTextActive
+                                        { color: colors.textSecondary },
+                                        selectedType.id === type.id ? { color: colors.primary } : null,
                                     ]}>
                                         {type.label}
                                     </Text>
@@ -202,32 +217,32 @@ const HealthScreen = () => {
                         </ScrollView>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>
-                                Value ({selectedType.unit})
+                            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                                {t('health.value')} ({selectedType.unit})
                             </Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.lightGray, color: colors.textPrimary }]}
                                 value={value}
                                 onChangeText={setValue}
                                 keyboardType="numeric"
                                 placeholder="0.0"
-                                placeholderTextColor={COLORS.textDisabled}
+                                placeholderTextColor={colors.textDisabled}
                             />
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>{t('addMedicine.notes')}</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.lightGray, color: colors.textPrimary }]}
                                 value={notes}
                                 onChangeText={setNotes}
-                                placeholder="Add a note..."
-                                placeholderTextColor={COLORS.textDisabled}
+                                placeholder={t('health.addNote')}
+                                placeholderTextColor={colors.textDisabled}
                             />
                         </View>
 
                         <Button
-                            title="Save Measurement"
+                            title={t('common.save')}
                             onPress={handleAddMeasurement}
                             loading={loading}
                             variant="primary"
@@ -243,7 +258,6 @@ const HealthScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
     },
     header: {
         paddingBottom: 24,
@@ -254,11 +268,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
     },
     headerSubtitle: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.white,
+        color: '#FFFFFF',
         opacity: 0.8,
     },
     content: {
@@ -283,7 +297,6 @@ const styles = StyleSheet.create({
     metricLabel: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textSecondary,
         marginLeft: 8,
     },
     metricValueContainer: {
@@ -294,16 +307,13 @@ const styles = StyleSheet.create({
     metricValue: {
         fontSize: 24,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
     },
     metricUnit: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
         marginLeft: 4,
     },
     metricDate: {
         fontSize: 10,
-        color: COLORS.textDisabled,
     },
     section: {
         marginTop: 8,
@@ -311,7 +321,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 16,
     },
     historyItem: {
@@ -331,25 +340,20 @@ const styles = StyleSheet.create({
     historyType: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textPrimary,
     },
     historyDate: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
     },
     historyValue: {
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.primary,
     },
     historyUnit: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: 'normal',
-        color: COLORS.textSecondary,
     },
     emptyText: {
         textAlign: 'center',
-        color: COLORS.textSecondary,
         marginTop: 20,
     },
     modalContainer: {
@@ -358,7 +362,6 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: COLORS.white,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
@@ -373,7 +376,6 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: TYPOGRAPHY.fontSize.h2,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
     },
     typeSelector: {
         flexDirection: 'row',
@@ -383,22 +385,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: COLORS.lightGray,
         marginRight: 8,
         borderWidth: 1,
-        borderColor: COLORS.border,
-    },
-    typeChipActive: {
-        backgroundColor: COLORS.primary + '20',
-        borderColor: COLORS.primary,
     },
     typeChipText: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textSecondary,
-    },
-    typeChipTextActive: {
-        color: COLORS.primary,
     },
     inputContainer: {
         marginBottom: 16,
@@ -406,15 +398,12 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: COLORS.lightGray,
         borderRadius: 12,
         padding: 16,
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textPrimary,
     },
 });
 

@@ -4,14 +4,14 @@
 import React, { useRef } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import COLORS from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const FloatingActionButton = ({
     onPress,
     icon = '+',
-    gradientColors = COLORS.gradientPrimary,
     style,
 }) => {
+    const { colors } = useTheme();
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const handlePressIn = () => {
@@ -31,7 +31,10 @@ const FloatingActionButton = ({
     };
 
     return (
-        <Animated.View style={[styles.container, style, { transform: [{ scale: scaleAnim }] }]}>
+        <Animated.View style={[styles.container, style, {
+            shadowColor: colors.shadow.large,
+            transform: [{ scale: scaleAnim }],
+        }]}>
             <TouchableOpacity
                 onPress={onPress}
                 onPressIn={handlePressIn}
@@ -39,12 +42,12 @@ const FloatingActionButton = ({
                 activeOpacity={0.9}
             >
                 <LinearGradient
-                    colors={gradientColors}
+                    colors={colors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.gradient}
                 >
-                    <Text style={styles.icon}>{icon}</Text>
+                    <Text style={[styles.icon, { color: colors.textWhite }]}>{icon}</Text>
                 </LinearGradient>
             </TouchableOpacity>
         </Animated.View>
@@ -56,11 +59,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 24,
         right: 24,
-        shadowColor: COLORS.shadow.large,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 12,
         elevation: 8,
@@ -74,7 +73,6 @@ const styles = StyleSheet.create({
     },
     icon: {
         fontSize: 32,
-        color: COLORS.white,
         fontWeight: 'bold',
     },
 });

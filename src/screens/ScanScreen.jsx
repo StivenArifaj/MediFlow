@@ -18,20 +18,26 @@ import { Camera, Zap, ZapOff, Type, X, Image as ImageIcon } from 'lucide-react-n
 // Components
 import Button from '../components/common/Button';
 
+// Theme
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+
 // Constants
-import COLORS from '../constants/colors';
 import TYPOGRAPHY from '../constants/typography';
 
 const ScanScreen = ({ navigation }) => {
     const [permission, requestPermission] = useCameraPermissions();
     const [flash, setFlash] = useState(false);
     const [capturing, setCapturing] = useState(false);
+
     const cameraRef = useRef(null);
+    const { colors } = useTheme();
+    const { t } = useLanguage();
 
     if (!permission) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.loadingText}>Loading camera...</Text>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <Text style={[styles.loadingText, { color: colors.textWhite }]}>{t('scan.loading')}</Text>
             </View>
         );
     }
@@ -40,20 +46,21 @@ const ScanScreen = ({ navigation }) => {
         return (
             <View style={styles.container}>
                 <LinearGradient
-                    colors={COLORS.gradientPrimary}
+                    colors={colors.gradientPrimary}
                     style={styles.permissionContainer}
                 >
-                    <Camera size={80} color={COLORS.white} style={{ marginBottom: 24 }} />
-                    <Text style={styles.permissionTitle}>Camera Access Required</Text>
+
+                    <Camera size={80} color="#FFFFFF" style={{ marginBottom: 24 }} />
+                    <Text style={styles.permissionTitle}>{t('scan.permissionTitle')}</Text>
                     <Text style={styles.permissionText}>
-                        MediFlow needs camera access to scan your medicine boxes
+                        {t('scan.permissionText')}
                     </Text>
                     <Button
-                        title="Grant Permission"
+                        title={t('scan.grant')}
                         onPress={requestPermission}
                         variant="gradient"
-                        gradientColors={[COLORS.white, COLORS.lightGray]}
-                        textStyle={{ color: COLORS.primary }}
+                        gradientColors={['#FFFFFF', colors.lightGray]}
+                        textStyle={{ color: colors.primary }}
                         style={styles.permissionButton}
                     />
                 </LinearGradient>
@@ -82,11 +89,11 @@ const ScanScreen = ({ navigation }) => {
 
             if (!ocrResult.success) {
                 Alert.alert(
-                    'Scan Failed',
-                    'Could not extract medicine information. Would you like to add manually?',
+                    t('scan.scanFailed'),
+                    t('scan.scanFailedMsg'),
                     [
-                        { text: 'Try Again', onPress: () => setCapturing(false) },
-                        { text: 'Add Manually', onPress: () => navigation.navigate('AddMedicine') },
+                        { text: t('common.tryAgain'), onPress: () => setCapturing(false) },
+                        { text: t('scan.addManually'), onPress: () => navigation.navigate('AddMedicine') },
                     ]
                 );
                 return;
@@ -103,10 +110,8 @@ const ScanScreen = ({ navigation }) => {
                 console.log('🔍 OpenFDA API Result:', apiResult);
 
                 if (apiResult.success && apiResult.medicines && apiResult.medicines.length > 0) {
-                    // Get first medicine from results
                     const fdaData = apiResult.medicines[0];
 
-                    // Merge OCR data with API data (OCR takes priority for what it found)
                     medicineData = {
                         verified_name: medicineData.verified_name || fdaData.brandName,
                         brand_name: medicineData.brand_name || fdaData.brandName,
@@ -122,7 +127,6 @@ const ScanScreen = ({ navigation }) => {
 
             console.log('✅ Final Medicine Data:', medicineData);
 
-            // Navigate to AddMedicine with pre-filled data
             navigation.navigate('AddMedicine', {
                 scannedData: medicineData,
                 photoUri: photo.uri,
@@ -130,7 +134,7 @@ const ScanScreen = ({ navigation }) => {
 
         } catch (error) {
             console.error('Error capturing photo:', error);
-            Alert.alert('Error', 'Failed to process photo. Please try again.');
+            Alert.alert(t('common.error'), t('scan.processFailed'));
         } finally {
             setCapturing(false);
         }
@@ -148,22 +152,21 @@ const ScanScreen = ({ navigation }) => {
                 <View style={styles.overlay}>
                     <View style={styles.topOverlay}>
                         <Text style={styles.instructionText}>
-                            Scan Medicine Box
+                            {t('scan.instruction')}
                         </Text>
                         <Text style={styles.subInstructionText}>
-                            Align the medicine name within the frame
+                            {t('scan.subInstruction')}
                         </Text>
                     </View>
 
                     {/* Scanning Frame */}
                     <View style={styles.scanFrame}>
-                        <View style={[styles.corner, styles.topLeft]} />
-                        <View style={[styles.corner, styles.topRight]} />
-                        <View style={[styles.corner, styles.bottomLeft]} />
-                        <View style={[styles.corner, styles.bottomRight]} />
+                        <View style={[styles.corner, styles.topLeft, { borderColor: colors.primary }]} />
+                        <View style={[styles.corner, styles.topRight, { borderColor: colors.primary }]} />
+                        <View style={[styles.corner, styles.bottomLeft, { borderColor: colors.primary }]} />
+                        <View style={[styles.corner, styles.bottomRight, { borderColor: colors.primary }]} />
 
-                        {/* Animated Scan Line (Visual only for now) */}
-                        <View style={styles.scanLine} />
+                        <View style={[styles.scanLine, { backgroundColor: colors.primary }]} />
                     </View>
 
                     <View style={styles.bottomOverlay}>
@@ -175,11 +178,11 @@ const ScanScreen = ({ navigation }) => {
                                 onPress={() => setFlash(!flash)}
                             >
                                 {flash ? (
-                                    <ZapOff size={28} color={COLORS.white} />
+                                    <ZapOff size={28} color="#FFFFFF" />
                                 ) : (
-                                    <Zap size={28} color={COLORS.white} />
+                                    <Zap size={28} color="#FFFFFF" />
                                 )}
-                                <Text style={styles.controlText}>Flash</Text>
+                                <Text style={styles.controlText}>{t('scan.flash')}</Text>
                             </TouchableOpacity>
 
                             {/* Capture Button */}
@@ -189,7 +192,7 @@ const ScanScreen = ({ navigation }) => {
                                 disabled={capturing}
                             >
                                 <View style={styles.captureOuterRing}>
-                                    <View style={styles.captureInner} />
+                                    <View style={[styles.captureInner, { backgroundColor: colors.primary }]} />
                                 </View>
                             </TouchableOpacity>
 
@@ -198,8 +201,8 @@ const ScanScreen = ({ navigation }) => {
                                 style={styles.controlButton}
                                 onPress={() => navigation.navigate('AddMedicine')}
                             >
-                                <Type size={28} color={COLORS.white} />
-                                <Text style={styles.controlText}>Manual</Text>
+                                <Type size={28} color="#FFFFFF" />
+                                <Text style={styles.controlText}>{t('addMedicine.manual')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -212,10 +215,9 @@ const ScanScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.textPrimary,
+        backgroundColor: '#0F1629',
     },
     loadingText: {
-        color: COLORS.white,
         fontSize: TYPOGRAPHY.fontSize.body,
         textAlign: 'center',
         marginTop: 100,
@@ -226,20 +228,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 32,
     },
-    permissionIcon: {
-        fontSize: 80,
-        marginBottom: 24,
-    },
     permissionTitle: {
         fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
         marginBottom: 16,
         textAlign: 'center',
     },
     permissionText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.white,
+        color: '#FFFFFF',
         textAlign: 'center',
         marginBottom: 32,
         lineHeight: 24,
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     instructionText: {
-        color: COLORS.white,
+        color: '#FFFFFF',
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
         textAlign: 'center',
@@ -270,7 +268,7 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
     subInstructionText: {
-        color: COLORS.white,
+        color: '#FFFFFF',
         fontSize: TYPOGRAPHY.fontSize.small,
         textAlign: 'center',
         opacity: 0.8,
@@ -286,14 +284,12 @@ const styles = StyleSheet.create({
     scanLine: {
         width: '100%',
         height: 2,
-        backgroundColor: COLORS.primary,
         opacity: 0.6,
     },
     corner: {
         position: 'absolute',
         width: 40,
         height: 40,
-        borderColor: COLORS.primary,
         borderWidth: 4,
         borderRadius: 4,
     },
@@ -340,7 +336,7 @@ const styles = StyleSheet.create({
         width: 60,
     },
     controlText: {
-        color: COLORS.white,
+        color: '#FFFFFF',
         fontSize: 12,
         fontWeight: '600',
         marginTop: 8,
@@ -351,7 +347,7 @@ const styles = StyleSheet.create({
         borderRadius: 40,
         backgroundColor: 'transparent',
         borderWidth: 4,
-        borderColor: COLORS.white,
+        borderColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -367,7 +363,6 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: COLORS.primary,
     },
 });
 

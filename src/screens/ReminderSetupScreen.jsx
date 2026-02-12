@@ -18,12 +18,14 @@ import { Clock, Calendar, List, Check } from 'lucide-react-native';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 
+// Theme
+import { useTheme } from '../context/ThemeContext';
+
 // Stores
 import useReminderStore from '../store/useReminderStore';
 import useUserStore from '../store/useUserStore';
 
 // Constants
-import COLORS from '../constants/colors';
 import TYPOGRAPHY from '../constants/typography';
 import CONFIG from '../constants/config';
 
@@ -31,13 +33,13 @@ const ReminderSetupScreen = ({ route, navigation }) => {
     const { medId } = route.params || {};
     const { addReminder } = useReminderStore();
     const { user } = useUserStore();
+    const { colors } = useTheme();
 
     const [selectedTimes, setSelectedTimes] = useState([]);
     const [frequency, setFrequency] = useState('daily');
-    const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4, 5, 6]); // All days
+    const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4, 5, 6]);
     const [loading, setLoading] = useState(false);
 
-    // Custom Time Picker State
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [customTime, setCustomTime] = useState(new Date());
 
@@ -84,7 +86,7 @@ const ReminderSetupScreen = ({ route, navigation }) => {
         setLoading(true);
 
         try {
-            const userId = user?.user_id || 'local_user_1'; // FIXED: Added null safety
+            const userId = user?.user_id || 'local_user_1';
 
             for (const time of selectedTimes) {
                 await addReminder(
@@ -123,12 +125,12 @@ const ReminderSetupScreen = ({ route, navigation }) => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView style={styles.scrollView}>
                 <Card style={styles.section}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                        <Clock size={24} color={COLORS.primary} style={{ marginRight: 8 }} />
-                        <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>When to take?</Text>
+                        <Clock size={24} color={colors.primary} style={{ marginRight: 8 }} />
+                        <Text style={[styles.sectionTitle, { marginBottom: 0, color: colors.textPrimary }]}>When to take?</Text>
                     </View>
 
                     {CONFIG.TIME_PRESETS.map((preset) => (
@@ -136,7 +138,14 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                             key={preset.time}
                             style={[
                                 styles.presetButton,
-                                selectedTimes.includes(preset.time) ? styles.presetButtonActive : null
+                                {
+                                    borderColor: colors.border,
+                                    backgroundColor: colors.surface,
+                                },
+                                selectedTimes.includes(preset.time) ? {
+                                    borderColor: colors.primary,
+                                    backgroundColor: colors.primary + '10',
+                                } : null,
                             ]}
                             onPress={() => togglePresetTime(preset.time)}
                         >
@@ -144,29 +153,31 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                             <View style={styles.presetInfo}>
                                 <Text style={[
                                     styles.presetLabel,
-                                    selectedTimes.includes(preset.time) ? styles.presetLabelActive : null
+                                    { color: colors.textPrimary },
+                                    selectedTimes.includes(preset.time) ? { color: colors.primary } : null,
                                 ]}>
                                     {preset.label}
                                 </Text>
                                 <Text style={[
                                     styles.presetTime,
-                                    selectedTimes.includes(preset.time) ? styles.presetTimeActive : null
+                                    { color: colors.textSecondary },
+                                    selectedTimes.includes(preset.time) ? { color: colors.primary } : null,
                                 ]}>
                                     {preset.time}
                                 </Text>
                             </View>
                             {selectedTimes.includes(preset.time) ? (
-                                <Check size={24} color={COLORS.primary} />
+                                <Check size={24} color={colors.primary} />
                             ) : null}
                         </TouchableOpacity>
                     ))}
 
                     {/* Custom Time Picker */}
                     <TouchableOpacity
-                        style={styles.customTimeButton}
+                        style={[styles.customTimeButton, { borderColor: colors.primary, backgroundColor: colors.primary + '05' }]}
                         onPress={() => setShowTimePicker(true)}
                     >
-                        <Text style={styles.customTimeText}>+ Add Custom Time</Text>
+                        <Text style={[styles.customTimeText, { color: colors.primary }]}>+ Add Custom Time</Text>
                     </TouchableOpacity>
 
                     {showTimePicker && (
@@ -180,13 +191,13 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                     )}
 
                     {selectedTimes.length > 0 ? (
-                        <View style={styles.selectedTimesContainer}>
-                            <Text style={styles.selectedTimesLabel}>
+                        <View style={[styles.selectedTimesContainer, { backgroundColor: colors.success + '10' }]}>
+                            <Text style={[styles.selectedTimesLabel, { color: colors.textPrimary }]}>
                                 Selected Times ({selectedTimes.length}):
                             </Text>
                             <View style={styles.selectedTimesList}>
                                 {selectedTimes.map((time) => (
-                                    <View key={time} style={styles.selectedTimeChip}>
+                                    <View key={time} style={[styles.selectedTimeChip, { backgroundColor: colors.success }]}>
                                         <Text style={styles.selectedTimeText}>{time}</Text>
                                         <TouchableOpacity onPress={() => togglePresetTime(time)}>
                                             <Text style={styles.removeTime}>✕</Text>
@@ -199,32 +210,46 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                 </Card>
 
                 <Card style={styles.section}>
-                    <Text style={styles.sectionTitle}>📅 How often?</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📅 How often?</Text>
 
                     <TouchableOpacity
                         style={[
                             styles.frequencyOption,
-                            frequency === 'daily' ? styles.frequencyOptionActive : null,
+                            {
+                                borderColor: colors.border,
+                                backgroundColor: colors.surface,
+                            },
+                            frequency === 'daily' ? {
+                                borderColor: colors.primary,
+                                backgroundColor: colors.primary + '10',
+                            } : null,
                         ]}
                         onPress={() => setFrequency('daily')}
                     >
-                        <View style={styles.radioButton}>
-                            {frequency === 'daily' ? <View style={styles.radioButtonInner} /> : null}
+                        <View style={[styles.radioButton, { borderColor: colors.primary }]}>
+                            {frequency === 'daily' ? <View style={[styles.radioButtonInner, { backgroundColor: colors.primary }]} /> : null}
                         </View>
-                        <Text style={styles.frequencyText}>Every day</Text>
+                        <Text style={[styles.frequencyText, { color: colors.textPrimary }]}>Every day</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[
                             styles.frequencyOption,
-                            frequency === 'specific_days' ? styles.frequencyOptionActive : null,
+                            {
+                                borderColor: colors.border,
+                                backgroundColor: colors.surface,
+                            },
+                            frequency === 'specific_days' ? {
+                                borderColor: colors.primary,
+                                backgroundColor: colors.primary + '10',
+                            } : null,
                         ]}
                         onPress={() => setFrequency('specific_days')}
                     >
-                        <View style={styles.radioButton}>
-                            {frequency === 'specific_days' ? <View style={styles.radioButtonInner} /> : null}
+                        <View style={[styles.radioButton, { borderColor: colors.primary }]}>
+                            {frequency === 'specific_days' ? <View style={[styles.radioButtonInner, { backgroundColor: colors.primary }]} /> : null}
                         </View>
-                        <Text style={styles.frequencyText}>Specific days</Text>
+                        <Text style={[styles.frequencyText, { color: colors.textPrimary }]}>Specific days</Text>
                     </TouchableOpacity>
 
                     {frequency === 'specific_days' ? (
@@ -234,14 +259,22 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                                     key={index}
                                     style={[
                                         styles.dayButton,
-                                        selectedDays.includes(index) ? styles.dayButtonActive : null,
+                                        {
+                                            borderColor: colors.border,
+                                            backgroundColor: colors.surface,
+                                        },
+                                        selectedDays.includes(index) ? {
+                                            borderColor: colors.primary,
+                                            backgroundColor: colors.primary,
+                                        } : null,
                                     ]}
                                     onPress={() => toggleDay(index)}
                                 >
                                     <Text
                                         style={[
                                             styles.dayText,
-                                            selectedDays.includes(index) ? styles.dayTextActive : null,
+                                            { color: colors.textSecondary },
+                                            selectedDays.includes(index) ? { color: '#FFFFFF' } : null,
                                         ]}
                                     >
                                         {day}
@@ -254,28 +287,35 @@ const ReminderSetupScreen = ({ route, navigation }) => {
                     <TouchableOpacity
                         style={[
                             styles.frequencyOption,
-                            frequency === 'as_needed' ? styles.frequencyOptionActive : null,
+                            {
+                                borderColor: colors.border,
+                                backgroundColor: colors.surface,
+                            },
+                            frequency === 'as_needed' ? {
+                                borderColor: colors.primary,
+                                backgroundColor: colors.primary + '10',
+                            } : null,
                         ]}
                         onPress={() => setFrequency('as_needed')}
                     >
-                        <View style={styles.radioButton}>
-                            {frequency === 'as_needed' ? <View style={styles.radioButtonInner} /> : null}
+                        <View style={[styles.radioButton, { borderColor: colors.primary }]}>
+                            {frequency === 'as_needed' ? <View style={[styles.radioButtonInner, { backgroundColor: colors.primary }]} /> : null}
                         </View>
-                        <Text style={styles.frequencyText}>As needed (no reminders)</Text>
+                        <Text style={[styles.frequencyText, { color: colors.textPrimary }]}>As needed (no reminders)</Text>
                     </TouchableOpacity>
                 </Card>
 
-                <Card variant="outlined" style={styles.summaryCard}>
-                    <Text style={styles.summaryTitle}>📋 Summary</Text>
-                    <Text style={styles.summaryText}>
+                <Card variant="outlined" style={[styles.summaryCard, { backgroundColor: colors.primary + '05', borderLeftColor: colors.primary }]}>
+                    <Text style={[styles.summaryTitle, { color: colors.textPrimary }]}>📋 Summary</Text>
+                    <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
                         {selectedTimes.length} reminder(s) at:{' '}
                         {selectedTimes.join(', ') || 'None selected'}
                     </Text>
-                    <Text style={styles.summaryText}>
+                    <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
                         Frequency: {frequency === 'daily' ? 'Every day' : frequency === 'specific_days' ? 'Selected days' : 'As needed'}
                     </Text>
                     {frequency === 'specific_days' ? (
-                        <Text style={styles.summaryText}>
+                        <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
                             Days: {selectedDays.map(d => days[d]).join(', ')}
                         </Text>
                     ) : null}
@@ -298,7 +338,6 @@ const ReminderSetupScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.lightGray,
     },
     scrollView: {
         flex: 1,
@@ -310,7 +349,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 16,
     },
     presetButton: {
@@ -319,13 +357,7 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: COLORS.border,
-        backgroundColor: COLORS.white,
         marginBottom: 12,
-    },
-    presetButtonActive: {
-        borderColor: COLORS.primary,
-        backgroundColor: COLORS.primary + '10',
     },
     presetIcon: {
         fontSize: 32,
@@ -337,47 +369,30 @@ const styles = StyleSheet.create({
     presetLabel: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textPrimary,
-    },
-    presetLabelActive: {
-        color: COLORS.primary,
     },
     presetTime: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
-    },
-    presetTimeActive: {
-        color: COLORS.primary,
-    },
-    checkmark: {
-        fontSize: 24,
-        color: COLORS.primary,
     },
     customTimeButton: {
         padding: 16,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: COLORS.primary,
         borderStyle: 'dashed',
         alignItems: 'center',
         marginBottom: 16,
-        backgroundColor: COLORS.primary + '05',
     },
     customTimeText: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.primary,
     },
     selectedTimesContainer: {
         marginTop: 16,
         padding: 12,
-        backgroundColor: COLORS.success + '10',
         borderRadius: 12,
     },
     selectedTimesLabel: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textPrimary,
         marginBottom: 8,
     },
     selectedTimesList: {
@@ -387,7 +402,6 @@ const styles = StyleSheet.create({
     selectedTimeChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.success,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
@@ -396,12 +410,12 @@ const styles = StyleSheet.create({
     },
     selectedTimeText: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.white,
+        color: '#FFFFFF',
         marginRight: 8,
     },
     removeTime: {
         fontSize: 16,
-        color: COLORS.white,
+        color: '#FFFFFF',
     },
     frequencyOption: {
         flexDirection: 'row',
@@ -409,20 +423,13 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: COLORS.border,
-        backgroundColor: COLORS.white,
         marginBottom: 12,
-    },
-    frequencyOptionActive: {
-        borderColor: COLORS.primary,
-        backgroundColor: COLORS.primary + '10',
     },
     radioButton: {
         width: 24,
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: COLORS.primary,
         marginRight: 12,
         justifyContent: 'center',
         alignItems: 'center',
@@ -431,11 +438,9 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: COLORS.primary,
     },
     frequencyText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.textPrimary,
     },
     daysContainer: {
         flexDirection: 'row',
@@ -448,39 +453,25 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         borderWidth: 2,
-        borderColor: COLORS.border,
-        backgroundColor: COLORS.white,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    dayButtonActive: {
-        borderColor: COLORS.primary,
-        backgroundColor: COLORS.primary,
     },
     dayText: {
         fontSize: TYPOGRAPHY.fontSize.small,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textSecondary,
-    },
-    dayTextActive: {
-        color: COLORS.white,
     },
     summaryCard: {
         margin: 16,
         marginTop: 8,
-        backgroundColor: COLORS.primary + '05',
         borderLeftWidth: 4,
-        borderLeftColor: COLORS.primary,
     },
     summaryTitle: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 8,
     },
     summaryText: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
         marginBottom: 4,
     },
     actions: {

@@ -8,9 +8,20 @@ class DatabaseService {
         this.db = null;
     }
 
+
+
     // Initialize database and create tables
     async init() {
         try {
+            // If already initialized, close and reopen (handles hot-reloads)
+            if (this.db) {
+                try {
+                    await this.db.closeAsync();
+                } catch (e) {
+                    // Ignore close errors on stale handles
+                }
+                this.db = null;
+            }
             this.db = await SQLite.openDatabaseAsync('mediflow.db');
             await this.createTables();
             console.log('✅ Database initialized successfully');
@@ -29,6 +40,7 @@ class DatabaseService {
         user_id TEXT PRIMARY KEY,
         email TEXT UNIQUE,
         name TEXT,
+        password_hash TEXT,
         avatar_url TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now')),
@@ -39,6 +51,13 @@ class DatabaseService {
         timezone TEXT DEFAULT 'UTC'
       );
     `);
+
+        // Migration: add password_hash for existing DBs
+        try {
+            await this.db.execAsync(`ALTER TABLE users ADD COLUMN password_hash TEXT`);
+        } catch (e) {
+            // Column already exists — ignore
+        }
 
         // Medicines table
         await this.db.execAsync(`
@@ -445,6 +464,7 @@ class DatabaseService {
     // ==================== STATISTICS ====================
 
     async getAdherenceStats(userId, days = 30) {
+        this._checkDb();
         const startDate = Date.now() - (days * 24 * 60 * 60 * 1000);
 
         const result = await this.db.getFirstAsync(
@@ -467,20 +487,118 @@ class DatabaseService {
         };
     }
 
+    async getCurrentStreak(userId) {
+        this._checkDb();
+        const rows = await this.db.getAllAsync(
+            `SELECT DISTINCT date(scheduled_time / 1000, 'unixepoch', 'localtime') as day
+             FROM history
+             WHERE user_id = ? AND status = 'taken'
+             ORDER BY day DESC`,
+            [userId]
+        );
+
+        if (!rows || rows.length === 0) return 0;
+
+        let streak = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < rows.length; i++) {
+            const expectedDate = new Date(today);
+            expectedDate.setDate(today.getDate() - i);
+            const expectedStr = expectedDate.toISOString().split('T')[0];
+
+            if (rows[i].day === expectedStr) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    // ==================== DATA MANAGEMENT ====================
+
+    async clearAllData(userId) {
+        this._checkDb();
+        await this.db.withTransactionAsync(async () => {
+            await this.db.runAsync('DELETE FROM history WHERE user_id = ?', [userId]);
+            await this.db.runAsync('DELETE FROM reminders WHERE user_id = ?', [userId]);
+            await this.db.runAsync('DELETE FROM medicines WHERE user_id = ?', [userId]);
+            await this.db.runAsync('DELETE FROM health_measurements WHERE user_id = ?', [userId]);
+            await this.db.runAsync('DELETE FROM users WHERE user_id = ?', [userId]);
+        });
+        console.log('✅ All data cleared for user', userId);
+    }
+
+    async getAllDataForExport(userId) {
+        this._checkDb();
+        const user = await this.getUser(userId);
+        const medicines = await this.getMedicines(userId);
+        const reminders = await this.getReminders(userId);
+        const history = await this.getHistory(userId, 9999);
+        const healthMeasurements = await this.getHealthMeasurements(userId);
+
+        return {
+            exportDate: new Date().toISOString(),
+            appVersion: '1.0.0',
+            user: {
+                name: user?.name,
+                email: user?.email,
+                createdAt: user?.created_at,
+                isPremium: user?.is_premium,
+            },
+            medicines: medicines.map(m => ({
+                name: m.verified_name,
+                brandName: m.brand_name,
+                genericName: m.generic_name,
+                manufacturer: m.manufacturer,
+                category: m.category,
+                form: m.form,
+                strength: m.strength,
+                notes: m.notes,
+                createdAt: m.created_at,
+            })),
+            reminders: reminders.map(r => ({
+                time: r.time,
+                days: r.days,
+                frequencyType: r.frequency_type,
+                isActive: r.is_active,
+            })),
+            history: history.map(h => ({
+                medicineName: h.medicine_name,
+                scheduledTime: h.scheduled_time,
+                actualTime: h.actual_time,
+                status: h.status,
+                notes: h.notes,
+                lateByMinutes: h.late_by_minutes,
+            })),
+            healthMeasurements: healthMeasurements.map(hm => ({
+                type: hm.type,
+                value: hm.value,
+                unit: hm.unit,
+                notes: hm.notes,
+                date: hm.date,
+            })),
+        };
+    }
+
     // ==================== USER OPERATIONS ====================
 
     async createUser(user) {
+        this._checkDb();
         const userId = user.user_id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         await this.db.runAsync(
-            `INSERT INTO users (user_id, email, name, settings) VALUES (?, ?, ?, ?)`,
-            [userId, user.email || null, user.name || 'User', JSON.stringify(user.settings || {})]
+            `INSERT OR IGNORE INTO users (user_id, email, name, password_hash, settings) VALUES (?, ?, ?, ?, ?)`,
+            [userId, user.email || null, user.name || 'User', user.password_hash || null, JSON.stringify(user.settings || {})]
         );
 
         return userId;
     }
 
     async getUser(userId) {
+        this._checkDb();
         const result = await this.db.getFirstAsync(
             'SELECT * FROM users WHERE user_id = ?',
             [userId]
@@ -490,12 +608,47 @@ class DatabaseService {
                 result.settings = JSON.parse(result.settings);
             }
             result.is_premium = Boolean(result.is_premium);
+            result.is_premium = Boolean(result.is_premium);
             result.onboarding_completed = Boolean(result.onboarding_completed);
+
+            // Convert SQLite timestamps (seconds) to JS timestamps (milliseconds)
+            if (result.created_at && result.created_at < 10000000000) {
+                result.created_at = result.created_at * 1000;
+            }
+            if (result.updated_at && result.updated_at < 10000000000) {
+                result.updated_at = result.updated_at * 1000;
+            }
+        }
+        return result;
+    }
+
+    async getUserByEmail(email) {
+        this._checkDb();
+        const result = await this.db.getFirstAsync(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+        );
+        if (result) {
+            if (result.settings) {
+                result.settings = JSON.parse(result.settings);
+            }
+            result.is_premium = Boolean(result.is_premium);
+            result.is_premium = Boolean(result.is_premium);
+            result.onboarding_completed = Boolean(result.onboarding_completed);
+
+            // Convert SQLite timestamps (seconds) to JS timestamps (milliseconds)
+            if (result.created_at && result.created_at < 10000000000) {
+                result.created_at = result.created_at * 1000;
+            }
+            if (result.updated_at && result.updated_at < 10000000000) {
+                result.updated_at = result.updated_at * 1000;
+            }
         }
         return result;
     }
 
     async updateUser(userId, updates) {
+        this._checkDb();
         if (updates.settings) {
             updates.settings = JSON.stringify(updates.settings);
         }

@@ -20,6 +20,10 @@ import Card from '../components/common/Card';
 import FloatingActionButton from '../components/common/FloatingActionButton';
 import EmptyState from '../components/common/EmptyState';
 
+// Theme
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+
 // Stores
 import useMedicineStore from '../store/useMedicineStore';
 import useReminderStore from '../store/useReminderStore';
@@ -27,11 +31,12 @@ import useUserStore from '../store/useUserStore';
 import notificationService from '../services/notificationService';
 
 // Constants
-import COLORS from '../constants/colors';
 import TYPOGRAPHY from '../constants/typography';
 
 const HomeScreen = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
+    const { colors } = useTheme();
+    const { t } = useLanguage();
 
     const { user } = useUserStore();
     const { medicines, loadMedicines } = useMedicineStore();
@@ -76,15 +81,15 @@ const HomeScreen = ({ navigation }) => {
 
     const getGreeting = () => {
         const hour = new Date().getHours();
-        if (hour < 12) return 'Good Morning';
-        if (hour < 18) return 'Good Afternoon';
-        return 'Good Evening';
+        if (hour < 12) return t('home.goodMorning');
+        if (hour < 18) return t('home.goodAfternoon');
+        return t('home.goodEvening');
     };
 
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
@@ -94,7 +99,7 @@ const HomeScreen = ({ navigation }) => {
             >
                 {/* Gradient Hero Header */}
                 <LinearGradient
-                    colors={COLORS.gradientHero}
+                    colors={colors.gradientHero}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={[styles.heroHeader, { paddingTop: insets.top + 20 }]}
@@ -118,15 +123,15 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.statsContainer}>
                         <View style={styles.statCard}>
                             <Text style={styles.statValue}>{medicines.length}</Text>
-                            <Text style={styles.statLabel}>Medicines</Text>
+                            <Text style={styles.statLabel}>{t('home.medicines')}</Text>
                         </View>
                         <View style={styles.statCard}>
                             <Text style={styles.statValue}>{todaysReminders.length}</Text>
-                            <Text style={styles.statLabel}>Today</Text>
+                            <Text style={styles.statLabel}>{t('home.today')}</Text>
                         </View>
                         <View style={styles.statCard}>
                             <Text style={styles.statValue}>{reminders.length}</Text>
-                            <Text style={styles.statLabel}>Reminders</Text>
+                            <Text style={styles.statLabel}>{t('home.reminders')}</Text>
                         </View>
                     </View>
                 </LinearGradient>
@@ -135,8 +140,8 @@ const HomeScreen = ({ navigation }) => {
                 {todaysReminders.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Calendar size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+                            <Calendar size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('home.todaysSchedule')}</Text>
                         </View>
                         {todaysReminders.map((reminder) => (
                             <Card
@@ -146,21 +151,21 @@ const HomeScreen = ({ navigation }) => {
                             >
                                 <View style={styles.reminderContent}>
                                     <View style={styles.reminderLeft}>
-                                        <View style={styles.timeContainer}>
-                                            <Text style={styles.reminderTime}>{reminder.time}</Text>
+                                        <View style={[styles.timeContainer, { backgroundColor: colors.primaryLight + '20' }]}>
+                                            <Text style={[styles.reminderTime, { color: colors.primary }]}>{reminder.time}</Text>
                                         </View>
                                         <View style={styles.reminderInfo}>
-                                            <Text style={styles.reminderMedicine}>
+                                            <Text style={[styles.reminderMedicine, { color: colors.textPrimary }]}>
                                                 Medicine #{reminder.med_id.slice(0, 8)}
                                             </Text>
                                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                <Clock size={12} color={COLORS.warning} style={{ marginRight: 4 }} />
-                                                <Text style={styles.reminderStatus}>Upcoming</Text>
+                                                <Clock size={12} color={colors.warning} style={{ marginRight: 4 }} />
+                                                <Text style={[styles.reminderStatus, { color: colors.textSecondary }]}>{t('home.upcoming')}</Text>
                                             </View>
                                         </View>
                                     </View>
-                                    <TouchableOpacity style={styles.reminderAction}>
-                                        <Check size={20} color={COLORS.success} />
+                                    <TouchableOpacity style={[styles.reminderAction, { backgroundColor: colors.success + '20' }]}>
+                                        <Check size={20} color={colors.success} />
                                     </TouchableOpacity>
                                 </View>
                             </Card>
@@ -172,22 +177,22 @@ const HomeScreen = ({ navigation }) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Pill size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                            <Text style={styles.sectionTitle}>My Medicines</Text>
+                            <Pill size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('home.myMedicines')}</Text>
                         </View>
                         {medicines.length > 0 && (
                             <TouchableOpacity>
-                                <Text style={styles.seeAll}>See All →</Text>
+                                <Text style={[styles.seeAll, { color: colors.primary }]}>{t('home.seeAll')} →</Text>
                             </TouchableOpacity>
                         )}
                     </View>
 
                     {medicines.length === 0 ? (
                         <EmptyState
-                            icon={<Pill size={48} color={COLORS.textDisabled} />}
-                            title="No medicines yet"
-                            description="Start by scanning or adding your first medicine"
-                            actionText="Add Medicine"
+                            icon={<Pill size={48} color={colors.textDisabled} />}
+                            title={t('home.noMedicines')}
+                            description={t('home.startScanning')}
+                            actionText={t('navigation.addMedicine')}
                             onAction={() => navigation.navigate('AddMedicine')}
                         />
                     ) : (
@@ -199,28 +204,28 @@ const HomeScreen = ({ navigation }) => {
                                     onPress={() => navigation.navigate('MedicineDetail', { medId: medicine.med_id })}
                                 >
                                     <View style={styles.medicineContent}>
-                                        <View style={styles.medicineIcon}>
-                                            <Pill size={28} color={COLORS.primary} />
+                                        <View style={[styles.medicineIcon, { backgroundColor: colors.primaryLight + '20' }]}>
+                                            <Pill size={28} color={colors.primary} />
                                         </View>
                                         <View style={styles.medicineInfo}>
-                                            <Text style={styles.medicineName}>
+                                            <Text style={[styles.medicineName, { color: colors.textPrimary }]}>
                                                 {medicine.verified_name}
                                             </Text>
                                             <View style={styles.medicineDetails}>
                                                 {medicine.strength && (
-                                                    <Text style={styles.medicineStrength}>
+                                                    <Text style={[styles.medicineStrength, { color: colors.textSecondary }]}>
                                                         {medicine.strength}
                                                     </Text>
                                                 )}
                                                 {medicine.form && (
-                                                    <Text style={styles.medicineForm}>
+                                                    <Text style={[styles.medicineForm, { color: colors.textDisabled }]}>
                                                         • {medicine.form}
                                                     </Text>
                                                 )}
                                             </View>
                                         </View>
-                                        <TouchableOpacity style={styles.medicineAction}>
-                                            <ChevronRight size={20} color={COLORS.textSecondary} />
+                                        <TouchableOpacity style={[styles.medicineAction, { backgroundColor: colors.backgroundAlt }]}>
+                                            <ChevronRight size={20} color={colors.textSecondary} />
                                         </TouchableOpacity>
                                     </View>
                                 </Card>
@@ -228,8 +233,8 @@ const HomeScreen = ({ navigation }) => {
 
                             {medicines.length > 5 && (
                                 <TouchableOpacity style={styles.viewAllButton}>
-                                    <Text style={styles.viewAllText}>
-                                        View All {medicines.length} Medicines →
+                                    <Text style={[styles.viewAllText, { color: colors.primary }]}>
+                                        {t('home.viewAll').replace('{count}', medicines.length)} →
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -238,13 +243,13 @@ const HomeScreen = ({ navigation }) => {
                 </View>
 
                 {/* Health Tip Card */}
-                <Card variant="gradient" gradientColors={COLORS.gradientSuccess} style={styles.tipCard}>
+                <Card variant="gradient" gradientColors={colors.gradientSuccess} style={styles.tipCard}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                        <Lightbulb size={24} color={COLORS.white} style={{ marginRight: 8 }} />
-                        <Text style={styles.tipTitle}>Health Tip</Text>
+                        <Lightbulb size={24} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.tipTitle}>{t('home.healthTip')}</Text>
                     </View>
                     <Text style={styles.tipText}>
-                        Take your medicines at the same time each day to build a consistent routine
+                        {t('home.healthTipText')}
                     </Text>
                 </Card>
 
@@ -254,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
 
             {/* Floating Action Button */}
             <FloatingActionButton
-                icon={<Camera size={24} color={COLORS.white} />}
+                icon={<Camera size={24} color="#FFFFFF" />}
                 onPress={() => navigation.navigate('ScanMedicine')}
             />
         </View>
@@ -264,7 +269,6 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
     },
     scrollView: {
         flex: 1,
@@ -282,14 +286,14 @@ const styles = StyleSheet.create({
     },
     greeting: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.white,
+        color: '#FFFFFF',
         opacity: 0.9,
         marginBottom: 4,
     },
     userName: {
         fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
     },
     avatarContainer: {
         width: 48,
@@ -299,12 +303,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: COLORS.white,
+        borderColor: '#FFFFFF',
     },
     avatarText: {
         fontSize: 20,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
     },
     statsContainer: {
         flexDirection: 'row',
@@ -321,12 +325,12 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: TYPOGRAPHY.fontSize.h1,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
         marginBottom: 4,
     },
     statLabel: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.white,
+        color: '#FFFFFF',
         opacity: 0.9,
     },
     section: {
@@ -342,11 +346,9 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: TYPOGRAPHY.fontSize.h2,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
     },
     seeAll: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.primary,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
     },
     reminderCard: {
@@ -363,7 +365,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     timeContainer: {
-        backgroundColor: COLORS.primaryLight + '20',
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 12,
@@ -372,7 +373,6 @@ const styles = StyleSheet.create({
     reminderTime: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.primary,
     },
     reminderInfo: {
         flex: 1,
@@ -380,24 +380,17 @@ const styles = StyleSheet.create({
     reminderMedicine: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-        color: COLORS.textPrimary,
         marginBottom: 4,
     },
     reminderStatus: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
     },
     reminderAction: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.success + '20',
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    actionIcon: {
-        fontSize: 20,
-        color: COLORS.success,
     },
     medicineCard: {
         marginBottom: 12,
@@ -410,13 +403,9 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: COLORS.primaryLight + '20',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
-    },
-    medicineEmoji: {
-        fontSize: 28,
     },
     medicineInfo: {
         flex: 1,
@@ -424,7 +413,6 @@ const styles = StyleSheet.create({
     medicineName: {
         fontSize: TYPOGRAPHY.fontSize.body,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.textPrimary,
         marginBottom: 6,
     },
     medicineDetails: {
@@ -433,18 +421,15 @@ const styles = StyleSheet.create({
     },
     medicineStrength: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textSecondary,
         marginRight: 8,
     },
     medicineForm: {
         fontSize: TYPOGRAPHY.fontSize.small,
-        color: COLORS.textDisabled,
     },
     medicineAction: {
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: COLORS.backgroundAlt,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -454,26 +439,21 @@ const styles = StyleSheet.create({
     },
     viewAllText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.primary,
         fontWeight: TYPOGRAPHY.fontWeight.semiBold,
     },
     tipCard: {
         marginHorizontal: 20,
         marginBottom: 20,
     },
-    tipIcon: {
-        fontSize: 32,
-        marginBottom: 12,
-    },
     tipTitle: {
         fontSize: TYPOGRAPHY.fontSize.h3,
         fontWeight: TYPOGRAPHY.fontWeight.bold,
-        color: COLORS.white,
+        color: '#FFFFFF',
         marginBottom: 8,
     },
     tipText: {
         fontSize: TYPOGRAPHY.fontSize.body,
-        color: COLORS.white,
+        color: '#FFFFFF',
         lineHeight: 22,
         opacity: 0.95,
     },
